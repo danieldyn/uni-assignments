@@ -71,7 +71,8 @@
   {
     "password":"admin",
     "games":[
-      
+      14,
+      15
     ],
     "email":"daniel@dev.com",
     "points":380

@@ -10,6 +10,9 @@ public class Board {
     }
 
     public void addPiece(Piece p) {
+        if (p == null) {
+            return;
+        }
         Position pos = p.getPosition();
         pieces.add(new ChessPair<>(pos, p));
     }
@@ -25,33 +28,33 @@ public class Board {
 
     public void initialise() {
         // White back row
-        addPiece(new Rook("WHITE", "A1"));
-        addPiece(new Knight("WHITE", "B1"));
-        addPiece(new Bishop("WHITE", "C1"));
-        addPiece(new Queen("WHITE", "D1"));
-        addPiece(new King("WHITE", "E1"));
-        addPiece(new Bishop("WHITE", "F1"));
-        addPiece(new Knight("WHITE", "G1"));
-        addPiece(new Rook("WHITE", "H1"));
+        addPiece(PieceFactory.createPiece("R", "WHITE", "A1"));
+        addPiece(PieceFactory.createPiece("N", "WHITE", "B1"));
+        addPiece(PieceFactory.createPiece("B", "WHITE", "C1"));
+        addPiece(PieceFactory.createPiece("Q", "WHITE", "D1"));
+        addPiece(PieceFactory.createPiece("K", "WHITE", "E1"));
+        addPiece(PieceFactory.createPiece("B", "WHITE", "F1"));
+        addPiece(PieceFactory.createPiece("N", "WHITE", "G1"));
+        addPiece(PieceFactory.createPiece("R", "WHITE", "H1"));
 
         // White front row
         for (char c = 'A'; c <= 'H'; c++) {
-            addPiece(new Pawn(Colours.WHITE, new Position(c, 2)));
+            addPiece(PieceFactory.createPiece("P", "WHITE", "" + c + 2));
         }
 
         // Black back row
-        addPiece(new Rook("BLACK", "A8"));
-        addPiece(new Knight("BLACK", "B8"));
-        addPiece(new Bishop("BLACK", "C8"));
-        addPiece(new Queen("BLACK", "D8"));
-        addPiece(new King("BLACK", "E8"));
-        addPiece(new Bishop("BLACK", "F8"));
-        addPiece(new Knight("BLACK", "G8"));
-        addPiece(new Rook("BLACK", "H8"));
+        addPiece(PieceFactory.createPiece("R", "BLACK", "A8"));
+        addPiece(PieceFactory.createPiece("N", "BLACK", "B8"));
+        addPiece(PieceFactory.createPiece("B", "BLACK", "C8"));
+        addPiece(PieceFactory.createPiece("Q", "BLACK", "D8"));
+        addPiece(PieceFactory.createPiece("K", "BLACK", "E8"));
+        addPiece(PieceFactory.createPiece("B", "BLACK", "F8"));
+        addPiece(PieceFactory.createPiece("N", "BLACK", "G8"));
+        addPiece(PieceFactory.createPiece("R", "BLACK", "H8"));
 
         // Black front row
         for (char c = 'A'; c <= 'H'; c++) {
-            addPiece(new Pawn(Colours.BLACK, new Position(c, 7)));
+            addPiece(PieceFactory.createPiece("P", "BLACK", "" + c + 7));
         }
     }
 

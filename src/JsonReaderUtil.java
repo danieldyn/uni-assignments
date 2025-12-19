@@ -110,14 +110,7 @@ public final class JsonReaderUtil {
                         String type = asString(bObj.get("type"));
                         String colour = asString(bObj.get("color"));
                         String position = asString(bObj.get("position"));
-                        switch (type) {
-                            case "P": board.add(new Pawn(colour, position)); break;
-                            case "R": board.add(new Rook(colour, position)); break;
-                            case "B": board.add(new Bishop(colour, position)); break;
-                            case "Q": board.add(new Queen(colour, position)); break;
-                            case "K": board.add(new King(colour, position)); break;
-                            case "N": board.add(new Knight(colour, position)); break;
-                        }
+                        board.add(PieceFactory.createPiece(type, colour, position));
                     }
                     g.setBoard(board);
                 }

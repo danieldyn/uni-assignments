@@ -7,14 +7,15 @@ import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class Main {
-    List<User> existingUsers;
-    Map<Integer, Game> existingGames;
-    User currentUser;
+    private List<User> existingUsers = new ArrayList<>();
+    private Map<Integer, Game> existingGames = new HashMap<>();
+    private User currentUser = null;
+    private static final Main instance = new Main();
 
-    public Main() {
-        existingUsers = new ArrayList<>();
-        existingGames = new HashMap<>();
-        currentUser = null;
+    private Main() { } // singleton
+
+    public static Main getInstance() {
+        return instance;
     }
 
     public void read() {
@@ -76,69 +77,12 @@ public class Main {
         return user;
     }
 
-    public void run() {
-        Scanner sc = new Scanner(System.in);
-        boolean running = true;
-
-        while (running) {
-            if (currentUser == null) {
-                handleLoginMenu(sc);
-            } else {
-                handleMainMenu(sc);
-            }
-        }
-    }
-
     public static void main(String[] args) {
-        Main app = new Main();
-        app.read();
-        app.run();
-        app.write();
-    }
+        instance.read();
 
-    public void handleLoginMenu(Scanner sc) {
-        System.out.println("\nCLI Chess App");
+        new LoginScreen("Chess App");
 
-        while (true) {
-            try {
-                System.out.println("[1] Login");
-                System.out.println("[2] Create Account");
-                System.out.println("[3] Exit");
-
-                String choice = sc.nextLine().trim();
-
-                if (choice.equals("1")) {
-                    while (currentUser == null) {
-                        System.out.print("Email: ");
-                        String email = sc.nextLine().trim();
-                        System.out.print("Password: ");
-                        String passwd = sc.nextLine().trim();
-                        currentUser = login(email, passwd);
-                        if (currentUser == null) {
-                            throw new InvalidCommandException("Invalid credentials. Try again.");
-                        }
-                    }
-                    System.out.println("Login successful!");
-                    break;
-                } else if (choice.equals("2")) {
-                    System.out.print("Enter new Email: ");
-                    String email = sc.nextLine().trim();
-                    System.out.print("Enter new Password: ");
-                    String passwd = sc.nextLine().trim();
-                    currentUser = newAccount(email, passwd);
-                    System.out.println("Account created and logged in!");
-                    break;
-                } else if (choice.equals("3")) {
-                    write();
-                    System.exit(0);
-                } else {
-                    throw new InvalidCommandException("Invalid command.");
-                }
-            }
-            catch (InvalidCommandException e) {
-                System.out.println(e.getMessage());
-            }
-        }
+        instance.write();
     }
 
     public void handleMainMenu(Scanner sc) throws InvalidCommandException {
