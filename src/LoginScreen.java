@@ -186,7 +186,7 @@ public class LoginScreen extends JFrame {
         // Use Main class' newAccount method
         User user = Main.getInstance().newAccount(email, password);
         if (user != null) {
-            JOptionPane.showMessageDialog(null, "Account Successfully Created!");
+            JOptionPane.showMessageDialog(this, "Account Successfully Created!");
             this.dispose();
             // Open main game window after successful account creation
             new MainScreen(user);

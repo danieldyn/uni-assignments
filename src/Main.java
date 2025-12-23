@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import org.json.simple.parser.ParseException;
 
+import javax.swing.*;
+
 public class Main {
     private List<User> existingUsers = new ArrayList<>();
     private Map<Integer, Game> existingGames = new HashMap<>();
@@ -16,6 +18,10 @@ public class Main {
 
     public static Main getInstance() {
         return instance;
+    }
+
+    public User getCurrentUser() {
+        return currentUser;
     }
 
     public void read() {
@@ -80,65 +86,15 @@ public class Main {
     public static void main(String[] args) {
         instance.read();
 
-        new LoginScreen("Chess App");
+        SwingUtilities.invokeLater(() -> new LoginScreen("Chess App"));
 
-        instance.write();
+        //instance.write();
     }
 
-    public void handleMainMenu(Scanner sc) throws InvalidCommandException {
-        System.out.println("\nWelcome, " + currentUser.getEmail() + "!");
-        System.out.println("Points: " + currentUser.getPoints());
-        String choice;
-
-        while (true) {
-            try {
-                System.out.println("[1] Start New Game (vs Computer)");
-                System.out.println("[2] View Active Games");
-                System.out.println("[3] Logout");
-
-                choice = sc.nextLine().trim();
-
-                if (choice.equals("1") || choice.equals("2") || choice.equals("3")) {
-                    break;
-                }
-                else {
-                    throw new InvalidCommandException("Invalid command. Try again.");
-                }
-            }
-            catch (InvalidCommandException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-
-        if (choice.equals("1")) {
-            startNewGame(sc);
-        }
-        else if (choice.equals("2")) {
-            handleActiveGames(sc);
-        }
-        else {
-            logout();
-            System.out.println("Logged out.");
-        }
-    }
-
-    public void startNewGame(Scanner sc) {
-        System.out.print("Enter your Player Alias: ");
-        String alias = sc.nextLine().trim();
-
-        Colours playerColour = null;
-        while (playerColour == null) {
-            System.out.print("Choose Colour (WHITE/BLACK): ");
-            try {
-                playerColour = Colours.valueOf(sc.nextLine().trim().toUpperCase());
-            } catch (Exception e) {
-                System.out.println("Invalid colour choice.");
-            }
-        }
-
+    public void startNewGame(String alias, String playerColour) {
         Player player = new Player(alias, playerColour);
         Player computer = null;
-        if (playerColour == Colours.WHITE) {
+        if (playerColour.toUpperCase().equals("WHITE")) {
             computer = new Player("computer", "BLACK");
         }
         else {
@@ -159,7 +115,7 @@ public class Main {
         existingGames.put(maxId + 1, game);
         currentUser.addGame(game);
 
-        runGame(game, sc);
+        //runGame(game, sc);
     }
 
     public void handleActiveGames(Scanner sc) {
