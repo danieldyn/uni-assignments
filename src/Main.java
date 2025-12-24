@@ -91,7 +91,7 @@ public class Main {
         //instance.write();
     }
 
-    public void startNewGame(String alias, String playerColour) {
+    public Game startNewGame(String alias, String playerColour) {
         Player player = new Player(alias, playerColour);
         Player computer = null;
         if (playerColour.toUpperCase().equals("WHITE")) {
@@ -115,77 +115,7 @@ public class Main {
         existingGames.put(maxId + 1, game);
         currentUser.addGame(game);
 
-        //runGame(game, sc);
-    }
-
-    public void handleActiveGames(Scanner sc) {
-        List<Game> games = currentUser.getActiveGames();
-        if (games.isEmpty()) {
-            System.out.println("You have no active games. Try starting a new one against the computer!");
-            return;
-        }
-
-        System.out.println("Select a game ID:");
-        for (Game g : games) {
-            System.out.println("ID: " + g.getId());
-        }
-
-        Game selected = null;
-        int id = 0;
-
-        while (selected == null) {
-            try {
-                String input = sc.nextLine().trim();
-                id = Integer.parseInt(input);
-
-                for (Game g : games) {
-                    if (g.getId() == id) {
-                        selected = g;
-                    }
-                }
-
-                if (selected == null) {
-                    throw new InvalidCommandException("Invalid game ID. Try again.");
-                }
-            }
-            catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
-        }
-        String choice;
-
-        while (true) {
-            try {
-                System.out.println("Choose an option for game " + id + ":");
-                System.out.println("[1] Play/Resume");
-                System.out.println("[2] View Details");
-                System.out.println("[3] Delete");
-
-                choice = sc.nextLine().trim();
-                if (choice.equals("1") || choice.equals("2") || choice.equals("3")) {
-                    break;
-                }
-                else {
-                    throw new InvalidCommandException("Invalid option. Try again.");
-                }
-            }
-            catch (InvalidCommandException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-
-        if (choice.equals("1")) {
-            selected.resume();
-            runGame(selected, sc);
-        }
-        else if (choice.equals("2")) {
-            System.out.println("Game information: \n" + selected);
-        }
-        else if (choice.equals("3")) {
-            currentUser.removeGame(selected);
-            existingGames.remove(id);
-            System.out.println("Game deleted.");
-        }
+        return game;
     }
 
     public void runGame(Game game, Scanner sc) {

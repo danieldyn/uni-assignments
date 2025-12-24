@@ -266,11 +266,11 @@ public class MainScreen extends JFrame {
                 return;
             }
 
-            // Main.getInstance().startGame(user, alias, selectedColor);
+            Game newGame = Main.getInstance().startNewGame(alias, colour);
 
             // Replace with game window
             this.dispose();
-            //new GameScreen(Main.getInstance().getCurrentUser());
+            new GameScreen(Main.getInstance().getCurrentUser(), newGame);
         }
     }
 
@@ -323,6 +323,7 @@ public class MainScreen extends JFrame {
 
             // Replace with game screen
             this.dispose();
+            selectedGame.resume();
             new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
         }
     }

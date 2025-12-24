@@ -6,11 +6,13 @@ public class Game {
     private List<Player> players;
     private List<Move> moves;
     private int currentPlayerIndex;
+    private List<GameObserver> observers;
 
     public Game() {
         players = new ArrayList<>();
         moves = new ArrayList<>();
         board = new Board();
+        observers = new ArrayList<>();
     }
 
     public Game(int id, Player player1, Player player2) {
@@ -21,7 +23,34 @@ public class Game {
         players.add(player2);
         player2.setBoard(board);
         board = new Board();
-        moves = new ArrayList<Move>();
+        moves = new ArrayList<>();
+        observers = new ArrayList<>();
+    }
+
+    public void addObserver(GameObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(GameObserver observer) {
+        observers.remove(observer);
+    }
+
+    private void notifyMoveMade(Move move) {
+        for (GameObserver observer : observers) {
+            observer.onMoveMade(move);
+        }
+    }
+
+    private void notifyPlayerSwitch(Player player) {
+        for (GameObserver observer : observers) {
+            observer.onPlayerSwitch(player);
+        }
+    }
+
+    private void notifyPieceCaptured(Piece piece) {
+        for (GameObserver observer : observers) {
+            observer.onPieceCaptured(piece);
+        }
     }
 
     public List<Player> getPlayers() {
@@ -89,6 +118,7 @@ public class Game {
 
     public void switchPlayer() {
         currentPlayerIndex = (currentPlayerIndex + 1) % 2;
+        notifyPlayerSwitch(players.get(currentPlayerIndex));
     }
 
     public Player getCurrentPlayer() {
@@ -130,9 +160,11 @@ public class Game {
 
         if (capturedPiece != null) {
             move.setCapturedPiece(capturedPiece);
+            notifyPieceCaptured(capturedPiece);
         }
 
         moves.add(move);
+        notifyMoveMade(move);
     }
 
     public boolean checkDraw() {
