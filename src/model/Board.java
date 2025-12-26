@@ -189,18 +189,6 @@ public class Board {
         Piece sourcePiece = getPieceAt(from);
         // Not a trial move actually, but the code can be reused
         makeTrialMove(from, to);
-
-        // Pawn promotion
-        if (sourcePiece instanceof Pawn) {
-            int y = sourcePiece.getPosition().getY();
-            // White reaches 8, Black reaches 1
-            if ((sourcePiece.getColour() == Colours.WHITE && y == 8) ||
-                    (sourcePiece.getColour() == Colours.BLACK && y == 1)) {
-                removePiece(sourcePiece);
-                Piece queen = new Queen(sourcePiece.getColour(), to);
-                addPiece(queen);
-            }
-        }
     }
 
     public String toString() {

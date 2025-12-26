@@ -19,6 +19,13 @@ public class Move {
         this.to = new Position(to);
     }
 
+    public Move(Colours playerColour, Position from, Position to, Piece capturedPiece) {
+        this.playerColour = playerColour;
+        this.from = from;
+        this.to = to;
+        this.capturedPiece = capturedPiece;
+    }
+
     public Colours getPlayerColour() {
         return playerColour;
     }

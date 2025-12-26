@@ -21,7 +21,8 @@ public class Main {
     private User currentUser = null;
     private static final Main instance = new Main();
 
-    private Main() { } // singleton
+    private Main() {
+    } // singleton
 
     public static Main getInstance() {
         return instance;
@@ -51,8 +52,7 @@ public class Main {
                     }
                 }
             }
-        }
-        catch (IOException | ParseException e) {
+        } catch (IOException | ParseException e) {
             System.err.println(e.getMessage());
         }
     }
@@ -103,8 +103,7 @@ public class Main {
         Player computer = null;
         if (playerColour.toUpperCase().equals("WHITE")) {
             computer = new Player("computer", "BLACK");
-        }
-        else {
+        } else {
             computer = new Player("computer", "WHITE");
         }
 
@@ -125,56 +124,8 @@ public class Main {
         return game;
     }
 
-    public void runGame(Game game, Scanner sc) {
-        ExitCodes result = game.play(sc);
-
-        if (result == ExitCodes.SAVE) {
-            System.out.println("Game saved successfully. Feel free to resume it later.");
-            return;
-        }
-
-        Player humanPlayer = game.getHumanPlayer();
-        int Y = humanPlayer.getPoints();
-        int X = currentUser.getPoints();
-
-        int finalScoreChange = 0;
-
-        switch (result) {
-            case WIN_CHECKMATE:
-                finalScoreChange = Y + 300;
-                System.out.println("Victory! You've gained 300 points.");
-                break;
-
-            case LOSE_CHECKMATE:
-                finalScoreChange = Y - 300;
-                System.out.println("Defeat! You've been deducted 300 points.");
-                break;
-
-            case SURRENDER:
-                finalScoreChange = Y - 150;
-                System.out.println("Surrendered. You've been deducted 150 points.");
-                break;
-
-            case DRAW:
-                finalScoreChange = Y;
-                System.out.println("Draw. Points from captures added.");
-                break;
-
-            default:
-                break;
-        }
-
-        // Update User Account
-        int newTotal = X + finalScoreChange;
-        if (newTotal < 0) { // a bit of decency here
-            newTotal = 0;
-        }
-
-        currentUser.setPoints(newTotal);
-        // Remove game from active lists since it is finished
+    public void deleteGame(Game game) {
         currentUser.removeGame(game);
         existingGames.remove(game.getId());
-
-        System.out.println("Game Over. Total Points: " + newTotal);
     }
 }

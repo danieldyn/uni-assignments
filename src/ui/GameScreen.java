@@ -3,9 +3,9 @@ package ui;
 import model.Game;
 import model.User;
 import ui.components.BoardPanel;
+import ui.components.MoveHistoryPanel;
 
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
@@ -18,7 +18,7 @@ public class GameScreen extends JFrame {
     private static final int SCREEN_HEIGHT = 1000;
     private final Color MY_WHITE = new Color(245, 245, 250);
     private final Color MY_GREEN = new Color(38, 173, 46);
-    private final Color MY_BLUE = new Color(34, 56, 214);
+    private final Color MY_BLUE = new Color(34, 42, 116);
     private final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
     private final Color MY_GREY = new Color(124, 140, 163);
     private final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
@@ -78,39 +78,32 @@ public class GameScreen extends JFrame {
 
         // Centre: main content displayed horizontally
         JPanel centrePanel = new JPanel();
-        centrePanel.setBackground(MY_LIGHT_GRAY);
+        centrePanel.setBackground(MY_LIGHT_BLUE);
         centrePanel.setLayout(new GridBagLayout());
-        centrePanel.setBorder(new EmptyBorder(30, 30, 30,30));
+        centrePanel.setBorder(new EmptyBorder(10, 10, 10,10));
 
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.fill = GridBagConstraints.HORIZONTAL;
-        constraints.weightx = 0;
-        constraints.anchor = GridBagConstraints.NORTH;
-
-        // TODO move history on the left
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        JPanel moveHistoryPanel = new JPanel(new GridBagLayout());
-        moveHistoryPanel.setBackground(MY_LIGHT_GRAY);
-        moveHistoryPanel.setOpaque(false);
-        moveHistoryPanel.add(new JLabel("MOVE HISTORY HERE"), constraints);
+        // Move history on the left
+        JPanel moveHistoryPanel = new MoveHistoryPanel(game);
+        JScrollPane scrollPane = new JScrollPane(moveHistoryPanel);
+        scrollPane.setPreferredSize(new Dimension(200, 0));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         // Interactive board in the centre
-        constraints.gridx++;
-        constraints.insets = new Insets(0, 15, 0, 15);
         JPanel boardPanel = new BoardPanel(user, game);
-        centrePanel.add(boardPanel, constraints);
+        centrePanel.add(boardPanel);
 
         // TODO buttons, captured pieces etc
-        constraints.gridx++;
         JPanel utilPanel = new JPanel(new GridBagLayout());
-        utilPanel.setBackground(MY_LIGHT_GRAY);
+        utilPanel.setBackground(MY_LIGHT_BLUE);
         utilPanel.setOpaque(false);
-        utilPanel.add(new JLabel("BUTTONS AND DATA HERE"), constraints);
+        utilPanel.add(new JLabel("BUTTONS AND DATA HERE"));
 
         // Final assembly
+        scrollPane.setBorder(new LineBorder(MY_BLUE, 4));
+        centrePanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        utilPanel.setBorder(new EmptyBorder(0, 0, 10, 10));
         this.add(headerPanel, BorderLayout.NORTH);
-        this.add(moveHistoryPanel, BorderLayout.WEST);
+        this.add(scrollPane, BorderLayout.WEST);
         this.add(centrePanel, BorderLayout.CENTER);
         this.add(utilPanel, BorderLayout.EAST);
 

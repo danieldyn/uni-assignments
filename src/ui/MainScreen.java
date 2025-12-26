@@ -98,13 +98,13 @@ public class MainScreen extends JFrame {
         constraints.insets = new Insets(0,0, 30, 0);
         centrePanel.add(statsContainer, constraints);
 
-        // Resume existing game
+        // View existing games
         constraints.gridy++;
         constraints.insets = new Insets(0, 0, 15, 0);
-        JPanel continueCard = createMenuCard("Resume Game", "Continue a game in progress.");
+        JPanel continueCard = createMenuCard("View Games", "Get a list of your existing games and manage them.");
         continueCard.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
-                handleResumeGame();
+                handleViewGames();
             }
         });
         centrePanel.add(continueCard, constraints);
@@ -280,12 +280,12 @@ public class MainScreen extends JFrame {
         }
     }
 
-    private void handleResumeGame() {
+    private void handleViewGames() {
         List<Game> activeGames = Main.getInstance().getCurrentUser().getActiveGames();
 
         // Edge case for no games
         if (activeGames == null || activeGames.isEmpty()) {
-            JOptionPane.showMessageDialog(this,"You have no active games to resume.\nTry starting a new game against the computer!",
+            JOptionPane.showMessageDialog(this,"You have no active games to view.\nTry starting a new game against the computer!",
                                         "No Active Games", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -319,7 +319,7 @@ public class MainScreen extends JFrame {
 
         // Selection pane
         Object selection = JOptionPane.showInputDialog(
-                this,"Select a game to continue:","Resume Game", JOptionPane.QUESTION_MESSAGE,
+                this,"Select a game:","View Games", JOptionPane.QUESTION_MESSAGE,
                 null, options, options[0]
         );
 
@@ -327,10 +327,27 @@ public class MainScreen extends JFrame {
         if (selection != null) {
             Game selectedGame = ((GameListItem) selection).getGame();
 
-            // Replace with game screen
-            this.dispose();
-            selectedGame.resume();
-            new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
+            String[] actions = {"Resume Game", "Delete Game", "Cancel"};
+            int choice = JOptionPane.showOptionDialog(
+                    this, "What would you like to do with Game #" + selectedGame.getId() + "?",
+                    "Game Options", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, actions, actions[0]
+            );
+
+            // Choice interpretation
+            if (choice == JOptionPane.YES_OPTION) {
+                // Resume game, replace with game screen
+                this.dispose();
+                selectedGame.resume();
+                new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
+            }
+
+            else if (choice == JOptionPane.NO_OPTION) {
+                // Delete game
+                Main.getInstance().deleteGame(selectedGame);
+                JOptionPane.showMessageDialog(this, "Game deleted successfully.");
+                handleViewGames();
+            }
         }
     }
 }

@@ -2,6 +2,7 @@ package model;
 
 import exceptions.InvalidMoveException;
 import model.pieces.Piece;
+import model.strategies.StandardScoreStrategy;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -14,18 +15,20 @@ public class Player {
     private TreeSet<ChessPair<Position, Piece>> ownedPieces;
     private int points;
     private Board board;
+    StandardScoreStrategy scoreStrategy;
 
     public Player(String name, Colours colour) {
         this.name = name;
         this.colour = colour;
-        capturedPieces = new ArrayList<Piece>();
-        ownedPieces = new TreeSet<ChessPair<Position, Piece>>();
+        capturedPieces = new ArrayList<>();
+        ownedPieces = new TreeSet<>();
         points = 0;
+        scoreStrategy = new StandardScoreStrategy();
     }
 
     public Player(String name, String colour) {
         this.name = name;
-        if (colour.equals("WHITE")) {
+        if (colour.toUpperCase().equals("WHITE")) {
             this.colour = Colours.WHITE;
         }
         else {
@@ -34,6 +37,7 @@ public class Player {
         capturedPieces = new ArrayList<>();
         ownedPieces = new TreeSet<>();
         points = 0;
+        scoreStrategy = new StandardScoreStrategy();
     }
 
     public Colours getColour() {
@@ -59,13 +63,7 @@ public class Player {
 
         Piece targetPiece = board.getPieceAt(to);
         if (targetPiece != null) {
-            switch (targetPiece.type()) {
-                case 'P': setPoints(getPoints() + 10); break;
-                case 'N':
-                    case 'B': setPoints(getPoints() + 30); break;
-                case 'R': setPoints(getPoints() + 50); break;
-                case 'Q': setPoints(getPoints() + 90); break;
-            }
+            points += scoreStrategy.getScoreForCapture(targetPiece);
             capturedPieces.add(targetPiece);
         }
 

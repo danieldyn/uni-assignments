@@ -2,7 +2,10 @@ package model;
 
 import exceptions.InvalidMoveException;
 import exceptions.InvalidCommandException;
+import model.pieces.Pawn;
 import model.pieces.Piece;
+import model.pieces.PieceFactory;
+import model.pieces.Queen;
 
 import java.util.*;
 
@@ -56,6 +59,12 @@ public class Game {
     private void notifyPieceCaptured(Piece piece) {
         for (GameObserver observer : observers) {
             observer.onPieceCaptured(piece);
+        }
+    }
+
+    private void notifyPawnPromotion(Pawn pawn) {
+        for (GameObserver observer : observers) {
+            observer.onPawnPromotion(pawn);
         }
     }
 
@@ -161,8 +170,9 @@ public class Game {
         return true;
     }
 
-    public void addMove(Player p, Position from, Position to, Piece capturedPiece) {
-        Move move = new Move(p.getColour(), from, to);
+    public void addMove(Player player, Position from, Position to, Piece capturedPiece) {
+        Move move = new Move(player.getColour(), from, to);
+        Piece movedPiece = board.getPieceAt(to);
 
         if (capturedPiece != null) {
             move.setCapturedPiece(capturedPiece);
@@ -170,7 +180,35 @@ public class Game {
         }
 
         moves.add(move);
-        notifyMoveMade(move);
+        notifyMoveMade(move); // Observer notification
+
+        // Pawn promotion
+        if (movedPiece instanceof Pawn) {
+            int y = movedPiece.getPosition().getY();
+            // White reaches 8, Black reaches 1
+            if ((movedPiece.getColour() == Colours.WHITE && y == 8) ||
+                    (movedPiece.getColour() == Colours.BLACK && y == 1)) {
+                if (player.getName().equals("computer")) {
+                    // Random piece choice
+                    List<String> pieces = new ArrayList<>(4);
+                    pieces.add("Rook");
+                    pieces.add("Bishop");
+                    pieces.add("Knight");
+                    pieces.add("Queen");
+                    Collections.shuffle(pieces);
+                    promotePawn((Pawn)movedPiece, pieces.get(0));
+                }
+                else {
+                    notifyPawnPromotion((Pawn)movedPiece);
+                }
+            }
+        }
+    }
+
+    public void promotePawn(Pawn pawn, String pieceType) {
+        Piece newPiece =  PieceFactory.createPiece(pieceType, pawn.getColour(), pawn.getPosition());
+        board.removePiece(pawn);
+        board.addPiece(newPiece);
     }
 
     public boolean checkDraw() {
@@ -213,150 +251,38 @@ public class Game {
         return false;
     }
 
-    // Game running related part
-    public ExitCodes play(Scanner sc) {
-        boolean gameRunning = true;
+    public ExitCodes getGameState() {
+        Player currentPlayer = getCurrentPlayer();
+        boolean inCheck = board.isKingInCheck(currentPlayer.getColour());
+        boolean hasLegalMoves = !checkForCheckMate();
 
-        while (gameRunning) {
-            System.out.println(board.toString(getHumanPlayer().getColour()));
-
-            // Draw check
-            if (checkDraw()) {
-                System.out.println("The Computer surrenders due to stalemate/repetition.");
-                return ExitCodes.DRAW;
-            }
-
-            Player currentPlayer = getCurrentPlayer();
-            System.out.println("Next to move: " + currentPlayer.getColour() + " (" + currentPlayer.getName() + ")");
-
-            // Turn decision
-            ExitCodes result = ExitCodes.CONTINUE;
-            if (currentPlayer.getName().equals("computer")) {
-                result = handleComputerTurn();
+        if (!hasLegalMoves) {
+            if (inCheck) {
+                return ExitCodes.LOSE_CHECKMATE;
             }
             else {
-                try {
-                    result = handleUserTurn(sc, currentPlayer);
-                }
-                catch (InvalidMoveException e) {
-                    System.out.println(e.getMessage());
-                }
-            }
-
-            if (result == ExitCodes.SAVE || result == ExitCodes.SURRENDER) {
-                return result;
-            }
-
-            // Check for conclusion after the turn ended
-            boolean inCheck = board.isKingInCheck(getCurrentPlayer().getColour());
-            boolean hasLegalMoves = !checkForCheckMate();
-
-            if (inCheck && !hasLegalMoves) {
-                System.out.println(board);
-
-                if (currentPlayer.getName().equals("computer")) {
-                    System.out.println("CHECKMATE! YOU LOSE!");
-                    return ExitCodes.LOSE_CHECKMATE;
-                } else {
-                    System.out.println("CHECKMATE! YOU WIN!");
-                    return ExitCodes.WIN_CHECKMATE;
-                }
-            }
-            else if (!inCheck && !hasLegalMoves) {
-                System.out.println(board);
-                System.out.println("STALEMATE! The game is a draw.");
                 return ExitCodes.DRAW;
             }
         }
 
-        return ExitCodes.SAVE;
+        if (checkDraw()) {
+            return ExitCodes.DRAW;
+        }
+
+        return ExitCodes.CONTINUE;
     }
 
-    public ExitCodes handleUserTurn(Scanner sc, Player player) throws InvalidMoveException {
-        while (true) {
-            if (board.isKingInCheck(player.getColour())) {
-                System.out.println("You are in check!");
-            }
-            System.out.println("Enter move ('A2-A3'), piece to check ('A2'), 'surrender', or 'exit':");
-            String input = sc.nextLine().trim().toUpperCase();
+    public void processTurn(Position from, Position to) throws InvalidCommandException {
+        Player currentPlayer = getCurrentPlayer();
+        Piece targetPiece = board.getPieceAt(to);
 
-            if (input.equals("EXIT")) {
-                return ExitCodes.SAVE;
-            }
-
-            if (input.equals("SURRENDER")) {
-                return ExitCodes.SURRENDER;
-            }
-
-            // View possible moves
-            if (input.length() == 2) {
-                try {
-                    Position pos = new Position(input);
-                    Piece p = board.getPieceAt(pos);
-                    if (pos.isOnBoard()) {
-                        if (p != null && p.getColour() == player.getColour()) {
-                            System.out.println("Selected: " + p);
-                            List<Position> moves = p.getPossibleMoves(board);
-                            System.out.println("Possible moves: " + moves);
-                        }
-                        else {
-                            throw new InvalidCommandException("That is your opponent's piece! Try again.");
-                        }
-                    }
-                    else {
-                        throw new InvalidCommandException("Invalid position! Try again.");
-                    }
-                }
-                catch (InvalidCommandException e) {
-                    System.out.println(e.getMessage());
-                }
-                continue;
-            }
-
-            // Make move
-            if (input.contains("-")) {
-                String[] parts = input.split("-");
-                if (parts.length != 2) {
-                    System.out.println("Invalid input! Try again.");
-                    continue;
-                }
-
-                try {
-                    Position from = new Position(parts[0]);
-                    Position to = new Position(parts[1]);
-
-                    Piece p = board.getPieceAt(from);
-                    if (p == null || p.getColour() != player.getColour()) {
-                        throw new InvalidCommandException("Invalid position! Try again.");
-                    }
-
-                    Piece targetPiece = board.getPieceAt(to);
-                    player.makeMove(from, to, board);
-                    addMove(player, from, to, targetPiece);
-
-                    switchPlayer();
-                    return ExitCodes.CONTINUE;
-
-                }
-                catch (InvalidCommandException e) {
-                    System.out.println(e.getMessage());
-                }
-            }
-            else {
-                throw new  InvalidCommandException("Invalid input! Try again.");
-            }
-        }
+        // Game logic update
+        currentPlayer.makeMove(from, to, board);
+        addMove(currentPlayer, from, to, targetPiece);
+        switchPlayer();
     }
 
-    public ExitCodes handleComputerTurn() {
-        System.out.println("Computer's turn..");
-        try {
-            Thread.sleep(2500);
-        }
-        catch (InterruptedException e) {
-            System.out.println("Computer's move interrupted.");
-        }
-
+    public void handleComputerTurn() {
         Player computer = getCurrentPlayer();
         List<ChessPair<Position, Piece>> pieces = computer.getOwnedPieces();
         Collections.shuffle(pieces);
@@ -368,22 +294,14 @@ public class Game {
             Collections.shuffle(moves);
 
             for (Position destination : moves) {
-                if (board.isValidMove(p.getPosition(), destination)) {
-                    try {
-                        System.out.println("Computer moves: " + p.getPosition() + "-" + destination);
-
-                        Piece target = board.getPieceAt(destination);
-                        computer.makeMove(from, destination, board);
-                        addMove(computer, from, destination, target);
-
-                        switchPlayer();
-                        return ExitCodes.CONTINUE;
-                    } catch (InvalidMoveException e) {
-                        // Should not happen due to isValidMove check
-                    }
+                if (board.isValidMove(from, destination)) {
+                    Piece targetPiece = board.getPieceAt(destination);
+                    computer.makeMove(from, destination, board);
+                    addMove(computer, from, destination, targetPiece);
+                    switchPlayer();
+                    return;
                 }
             }
         }
-        return ExitCodes.CONTINUE;
     }
 }

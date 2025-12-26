@@ -3,21 +3,24 @@ package ui.components;
 import exceptions.InvalidMoveException;
 import model.*;
 import model.pieces.Piece;
+import model.pieces.Pawn;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
-import java.util.Collections;
 
 public class BoardPanel extends JPanel implements GameObserver {
     private final int TILE_SIZE = 100;
+    private final Color MY_WHITE = new Color(245, 245, 250);
 
     private final ChessSquare[][] squares = new ChessSquare[8][8];
     private final JPanel boardPanel;
@@ -62,11 +65,42 @@ public class BoardPanel extends JPanel implements GameObserver {
     public void onMoveMade(Move move) {
         resetSelection();
         refreshBoard();
-        // TODO highlighting last move
+        highlightLastMove(move);
     }
 
     public void onPieceCaptured(Piece piece) {
         // TODO update graphics
+    }
+
+    public void onPawnPromotion(Pawn pawn) {
+        JPanel inputPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        inputPanel.setBackground(MY_WHITE);
+        inputPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JLabel pieceLabel = new JLabel("Choose the piece to promote your pawn to:");
+        pieceLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        String[] pieces = {"Rook", "Bishop", "Knight", "Queen"};
+        JComboBox<String> pieceBox = new JComboBox<>(pieces);
+
+        inputPanel.add(pieceLabel);
+        inputPanel.add(pieceBox);
+
+        // Draw a child option pane
+        int result = JOptionPane.showConfirmDialog(this, inputPanel,"Pawn Promotion",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String pieceType = (String)pieceBox.getSelectedItem();
+
+            // Safety check
+            if (pieceType == null) {
+                JOptionPane.showMessageDialog(this, "Alias cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+                onPawnPromotion(pawn);
+                return;
+            }
+
+            game.promotePawn(pawn, pieceType);
+        }
     }
 
     public void onPlayerSwitch(Player currentPlayer) {
@@ -78,15 +112,11 @@ public class BoardPanel extends JPanel implements GameObserver {
             // Run in separate thread to not freeze UI
             new Thread(() -> {
                 try {
-                    Thread.sleep(1000); // Thinking time
+                    Thread.sleep(2500); // Milliseconds
                 }
-                catch (InterruptedException ignored) {}
+                catch (InterruptedException ignored) { }
 
-                // Use SwingUtilities to update UI from background thread
-                SwingUtilities.invokeLater(() -> {
-                    System.out.println("Computer Turn");
-                    performComputerMove();
-                });
+                SwingUtilities.invokeLater(game::handleComputerTurn);
             }).start();
         }
     }
@@ -131,7 +161,7 @@ public class BoardPanel extends JPanel implements GameObserver {
                 selectedSquare = clickedSquare;
                 selectedSquare.setBorder(new LineBorder(Color.YELLOW, 3));
                 highlightLegalMoves(piece);
-                System.out.println("Selected: " + piece); // Debug only
+                //System.out.println("Selected: " + piece); // Debug only
             }
         }
         else
@@ -163,14 +193,7 @@ public class BoardPanel extends JPanel implements GameObserver {
 
     private void executeMove(Position from, Position to) {
         try {
-            Player currentPlayer = game.getCurrentPlayer();
-            Piece targetPiece = board.getPieceAt(to);
-
-            // Game logic update
-            currentPlayer.makeMove(from, to, board);
-            game.addMove(currentPlayer, from, to, targetPiece);
-            game.switchPlayer();
-
+            game.processTurn(from, to);
         }
         catch (InvalidMoveException e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
@@ -178,43 +201,29 @@ public class BoardPanel extends JPanel implements GameObserver {
         }
     }
 
-    private void performComputerMove() {
-        Player computer = game.getCurrentPlayer();
-        List<ChessPair<Position, Piece>> pieces = computer.getOwnedPieces();
-        Collections.shuffle(pieces);
-
-        for (ChessPair<Position, Piece> pair : pieces) {
-            Piece p = pair.getValue();
-            Position from = p.getPosition();
-            List<Position> moves = p.getPossibleMoves(board);
-            Collections.shuffle(moves);
-
-            for (Position destination : moves) {
-                if (board.isValidMove(from, destination)) {
-                    executeMove(from, destination);
-                    return;
-                }
-            }
-        }
-    }
-
     private void checkGameState() {
-        boolean inCheck = board.isKingInCheck(game.getCurrentPlayer().getColour());
-        boolean checkMate = game.checkForCheckMate();
+        ExitCodes status = game.getGameState();
 
-        if (checkMate && inCheck) {
-            JOptionPane.showMessageDialog(this, "CHECKMATE! " + game.getCurrentPlayer().getColour() + " loses!");
-            // TODO return to menu logic
-        }
-        else if (checkMate && !inCheck) {
-            JOptionPane.showMessageDialog(this, "STALEMATE! It's a draw.");
-        }
-        else if (inCheck) {
-            statusLabel.setText("CHECK! " + game.getCurrentPlayer().getColour() + " to move.");
-            statusLabel.setForeground(Color.RED);
-        }
-        else {
-            statusLabel.setForeground(Color.BLACK);
+        switch (status) {
+            case LOSE_CHECKMATE:
+                JOptionPane.showMessageDialog(this, "CHECKMATE! " + game.getCurrentPlayer().getColour() + " loses!");
+                break;
+
+            case DRAW:
+                JOptionPane.showMessageDialog(this, "STALEMATE! The game is a draw.");
+                break;
+
+            case CONTINUE:
+                if (board.isKingInCheck(game.getCurrentPlayer().getColour())) {
+                    statusLabel.setText("CHECK! " + game.getCurrentPlayer().getColour() + " to move.");
+                    statusLabel.setForeground(Color.RED);
+                } else {
+                    statusLabel.setForeground(Color.BLACK);
+                }
+                break;
+
+            default:
+                break;
         }
     }
 
@@ -227,6 +236,26 @@ public class BoardPanel extends JPanel implements GameObserver {
                 squares[point.y][point.x].setHighlight(true);
             }
         }
+        boardPanel.repaint();
+    }
+
+    private void highlightLastMove(Move move) {
+        // Clear old highlights
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                squares[r][c].setLastMove(false);
+            }
+        }
+
+        // New highlights
+        if (move != null) {
+            Point from = fromPosition(move.getFrom());
+            Point to = fromPosition(move.getTo());
+
+            squares[from.y][from.x].setLastMove(true);
+            squares[to.y][to.x].setLastMove(true);
+        }
+
         boardPanel.repaint();
     }
 
@@ -297,7 +326,11 @@ public class BoardPanel extends JPanel implements GameObserver {
 
                 ChessSquare square = new ChessSquare(row, col, bg);
                 square.setPreferredSize(new Dimension(TILE_SIZE, TILE_SIZE));
-                square.addActionListener(e -> handleSquareClick(square));
+                square.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        handleSquareClick(square);
+                    }
+                });
 
                 squares[row][col] = square;
                 boardPanel.add(square);
@@ -306,11 +339,12 @@ public class BoardPanel extends JPanel implements GameObserver {
     }
 
     // Custom button class
-    private class ChessSquare extends JButton {
+    private static class ChessSquare extends JButton {
         int row, col;
         Image bgImage;
         private Image pieceImage = null;
         boolean isHighlighted = false;
+        boolean isLastMove = false;
 
         public ChessSquare(int row, int col, Image bgImage) {
             this.row = row;
@@ -319,6 +353,7 @@ public class BoardPanel extends JPanel implements GameObserver {
             this.setContentAreaFilled(false);
             this.setFocusPainted(false);
             this.setBorder(null);
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
         public void setHighlight(boolean val) {
@@ -329,6 +364,10 @@ public class BoardPanel extends JPanel implements GameObserver {
         public void setPieceImage(Image img) {
             this.pieceImage = img;
             this.repaint();
+        }
+
+        public void setLastMove(boolean val) {
+            this.isLastMove = val;
         }
 
         protected void paintComponent(Graphics g) {
@@ -347,8 +386,13 @@ public class BoardPanel extends JPanel implements GameObserver {
             }
 
             // Check for highlight
+            if (isLastMove) {
+                g.setColor(new Color(195, 255, 0, 100)); // Semi-transparent alpha
+                g.fillRect(0, 0, getWidth(), getHeight());
+            }
+
             if (isHighlighted) {
-                g.setColor(new Color(60, 255, 0, 100)); // Semi-transparent alpha
+                g.setColor(new Color(58, 255, 0, 100)); // Semi-transparent alpha
                 g.fillRect(0, 0, getWidth(), getHeight());
             }
 
