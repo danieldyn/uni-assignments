@@ -3,11 +3,10 @@
     "password":"parolaAna",
     "games":[
       1,
-      2,
-      13
+      2
     ],
     "email":"ana@example.com",
-    "points":120
+    "points":90
   },
   {
     "password":"parolaMihai",
@@ -71,10 +70,9 @@
   {
     "password":"admin",
     "games":[
-      14,
       15
     ],
     "email":"daniel@dev.com",
-    "points":380
+    "points":2680
   }
 ]

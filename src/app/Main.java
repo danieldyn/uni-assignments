@@ -4,6 +4,7 @@ import model.ExitCodes;
 import model.Game;
 import model.Player;
 import model.User;
+import model.strategies.ScoreStrategy;
 import ui.LoginScreen;
 import utils.JsonReaderUtil;
 import utils.JsonWriterUtil;
@@ -58,15 +59,11 @@ public class Main {
     }
 
     public void write() {
-        System.out.println("Saving game state...");
-
         Path accountsPath = Paths.get("input/accounts.json");
         Path gamesPath = Paths.get("input/games.json");
 
         JsonWriterUtil.writeUsers(accountsPath, existingUsers);
         JsonWriterUtil.writeGames(gamesPath, existingGames);
-
-        System.out.println("Save complete!");
     }
 
     public User login(String email, String password) {
@@ -80,6 +77,7 @@ public class Main {
     }
 
     public void logout() {
+        write();
         currentUser = null;
     }
 
@@ -94,8 +92,6 @@ public class Main {
         instance.read();
 
         SwingUtilities.invokeLater(() -> new LoginScreen("Chess App"));
-
-        //instance.write();
     }
 
     public Game startNewGame(String alias, String playerColour) {
@@ -127,5 +123,44 @@ public class Main {
     public void deleteGame(Game game) {
         currentUser.removeGame(game);
         existingGames.remove(game.getId());
+    }
+
+    public void reload() {
+        read();
+
+        if (this.currentUser != null) {
+            String email = this.currentUser.getEmail();
+            for (User u : existingUsers) {
+                if (u.getEmail().equals(email)) {
+                    this.currentUser = u;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Score calculation + game deletion
+    public int gameConclusion(Game game, ExitCodes exitCode) {
+        Player human = game.getHumanPlayer();
+        int Y = human.getPoints();
+        int adjustment;
+        ScoreStrategy strategy = human.getScoreStrategy();
+
+        switch (exitCode) {
+            case WIN_CHECKMATE: adjustment = strategy.getScoreForWin(); break;
+            case LOSE_CHECKMATE: adjustment = strategy.getScoreForLoss(); break;
+            case DRAW: adjustment = strategy.getScoreForDraw(); break;
+            case SURRENDER: adjustment = strategy.getScoreForSurrender(); break;
+            default: adjustment = 0;
+        }
+
+        // Game cleanup
+        currentUser.setPoints(currentUser.getPoints() + Y + adjustment);
+        deleteGame(game);
+        write();
+        reload();
+
+        // Return only necessary info for ConclusionScreen
+        return Y + adjustment;
     }
 }

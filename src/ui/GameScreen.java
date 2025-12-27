@@ -1,30 +1,42 @@
 package ui;
 
+import app.Main;
+import model.ExitCodes;
 import model.Game;
 import model.User;
 import ui.components.BoardPanel;
+import ui.components.CapturedPieceHistoryPanel;
 import ui.components.MoveHistoryPanel;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class GameScreen extends JFrame {
+    private User currentUser;
+    private Game currentGame;
+
     private static final int SCREEN_WIDTH = 1500;
     private static final int SCREEN_HEIGHT = 1000;
-    private final Color MY_WHITE = new Color(245, 245, 250);
-    private final Color MY_GREEN = new Color(38, 173, 46);
-    private final Color MY_BLUE = new Color(34, 42, 116);
-    private final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
-    private final Color MY_GREY = new Color(124, 140, 163);
-    private final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
+    private static final Color MY_WHITE = new Color(245, 245, 250);
+    private static final Color MY_GREEN = new Color(38, 173, 46);
+    private static final Color MY_BLUE = new Color(34, 42, 116);
+    private static final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
+    private static final Color MY_GREY = new Color(124, 140, 163);
+    private static final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
+    private static final Color MY_RED = new Color(229, 45, 45);
 
     public GameScreen(User user, Game game) {
         super("Chess Game");
+        currentUser = user;
+        currentGame = game;
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         this.setLocationRelativeTo(null);
@@ -80,33 +92,126 @@ public class GameScreen extends JFrame {
         JPanel centrePanel = new JPanel();
         centrePanel.setBackground(MY_LIGHT_BLUE);
         centrePanel.setLayout(new GridBagLayout());
-        centrePanel.setBorder(new EmptyBorder(10, 10, 10,10));
+        centrePanel.setBorder(new LineBorder(MY_BLUE, 2));
 
         // Move history on the left
         JPanel moveHistoryPanel = new MoveHistoryPanel(game);
         JScrollPane scrollPane = new JScrollPane(moveHistoryPanel);
-        scrollPane.setPreferredSize(new Dimension(200, 0));
+        scrollPane.setPreferredSize(new Dimension(225, 0));
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         // Interactive board in the centre
-        JPanel boardPanel = new BoardPanel(user, game);
+        JPanel boardPanel = new BoardPanel(user, game, this);
         centrePanel.add(boardPanel);
 
-        // TODO buttons, captured pieces etc
+        // Panel with captured pieces and action buttons on the right
         JPanel utilPanel = new JPanel(new GridBagLayout());
         utilPanel.setBackground(MY_LIGHT_BLUE);
-        utilPanel.setOpaque(false);
-        utilPanel.add(new JLabel("BUTTONS AND DATA HERE"));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        utilPanel.add(new CapturedPieceHistoryPanel(game), constraints);
+        constraints.gridy++;
+        constraints.insets = new Insets(20, 0, 0, 0);
+
+        JButton saveButton = new JButton("Save & Exit");
+        saveButton.setPreferredSize(new Dimension(175, 50));
+        styleButton(saveButton, MY_GREEN);
+        saveButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                saveGame();
+            }
+        });
+        utilPanel.add(saveButton, constraints);
+        constraints.gridy++;
+
+        JButton surrenderButton = new JButton("Surrender");
+        surrenderButton.setPreferredSize(new Dimension(175, 50));
+        styleButton(surrenderButton, MY_RED);
+        surrenderButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                surrender();
+            }
+        });
+        utilPanel.add(surrenderButton, constraints);
+        constraints.gridy++;
+
+        JButton quitButton = new JButton("Quit Without Saving");
+        quitButton.setPreferredSize(new Dimension(175, 50));
+        styleButton(quitButton, MY_BLUE);
+        quitButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                quitGame();
+            }
+        });
+        utilPanel.add(quitButton, constraints);
 
         // Final assembly
-        scrollPane.setBorder(new LineBorder(MY_BLUE, 4));
-        centrePanel.setBorder(new EmptyBorder(0, 0, 10, 0));
-        utilPanel.setBorder(new EmptyBorder(0, 0, 10, 10));
         this.add(headerPanel, BorderLayout.NORTH);
         this.add(scrollPane, BorderLayout.WEST);
         this.add(centrePanel, BorderLayout.CENTER);
         this.add(utilPanel, BorderLayout.EAST);
 
         this.setVisible(true);
+    }
+
+    private void styleButton(JButton button, Color baseColour) {
+        button.setFont(new Font("SansSerif", Font.BOLD, 14));
+        button.setForeground(Color.WHITE);
+        button.setBackground(baseColour);
+        button.setFocusPainted(false); // Helps when clicking
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Turns cursor into a hand
+
+        // Line border with padding
+        LineBorder line = new LineBorder(baseColour, 2);
+        EmptyBorder margin = new EmptyBorder(5, 15, 5, 15);
+        button.setBorder(new CompoundBorder(line, margin));
+
+        // Mouse hovering effect
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(Color.WHITE);
+                button.setForeground(baseColour);
+            }
+
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(baseColour);
+                button.setForeground(Color.WHITE);
+            }
+        });
+    }
+
+    private void saveGame() {
+        // Save game changes
+        Main.getInstance().write();
+        Main.getInstance().reload();
+        this.dispose();
+        new MainScreen(currentUser);
+    }
+
+    private void quitGame() {
+        int response = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to quit? Unsaved progress will be lost.",
+                "Confirm Quit", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (response == JOptionPane.YES_OPTION) {
+            Main.getInstance().reload();
+            User currentUser = Main.getInstance().getCurrentUser();
+            // Return to Main Screen
+            this.dispose();
+            new MainScreen(currentUser);
+        }
+    }
+
+    private void surrender() {
+        int response = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to surrender? You will be deducted points for this.",
+                "Confirm Surrender", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (response == JOptionPane.YES_OPTION) {
+            this.dispose();
+            new ConclusionScreen(currentGame, ExitCodes.SURRENDER);
+        }
     }
 }

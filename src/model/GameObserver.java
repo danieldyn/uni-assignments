@@ -8,6 +8,5 @@ public interface GameObserver {
     void onPieceCaptured(Piece piece);
     void onPlayerSwitch(Player currentPlayer);
     void onPawnPromotion(Pawn pawn);
-    // Optional: Useful for game over
-    // void onGameStateChanged(String message);
+    void onComputerPawnPromotion();
 }

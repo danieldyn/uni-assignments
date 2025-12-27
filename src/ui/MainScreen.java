@@ -11,17 +11,20 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.io.IOException;
 import java.util.List;
 
 public class MainScreen extends JFrame {
     private static final int SCREEN_WIDTH = 1500;
     private static final int SCREEN_HEIGHT = 750;
-    private final Color MY_WHITE = new Color(245, 245, 250);
-    private final Color MY_GREEN = new Color(38, 173, 46);
-    private final Color MY_BLUE = new Color(34, 56, 214);
-    private final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
-    private final Color MY_GREY = new Color(124, 140, 163);
-    private final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
+    private static final Color MY_WHITE = new Color(245, 245, 250);
+    private static final Color MY_GREEN = new Color(38, 173, 46);
+    private static final Color MY_BLUE = new Color(34, 56, 214);
+    private static final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
+    private static final Color MY_GREY = new Color(124, 140, 163);
+    private static final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
 
     public MainScreen(User user) {
         super("Chess App - Main Menu");
@@ -34,7 +37,8 @@ public class MainScreen extends JFrame {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BorderLayout());
         headerPanel.setBackground(MY_GREEN);
-        headerPanel.setBorder(new EmptyBorder(15, 25, 15, 25));
+        headerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        headerPanel.setPreferredSize(new Dimension(SCREEN_WIDTH, 80));
 
         // Top left: icon + "Main Menu"
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
@@ -43,16 +47,22 @@ public class MainScreen extends JFrame {
         // Icon setup
         JLabel iconLabel = new JLabel();
         try {
-            ImageIcon icon = new ImageIcon("assets/icons/game_icon.png");
-            // Scale to 40x40 px
-            Image scaledImage = icon.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH);
+            File imgFile = new File("assets/icons/game_icon.png");
+
+            if (!imgFile.exists()) {
+                throw new IOException("Image file not found");
+            }
+
+            Image img = javax.imageio.ImageIO.read(imgFile);
+            Image scaledImage = img.getScaledInstance(45, 45, Image.SCALE_SMOOTH);
             iconLabel.setIcon(new ImageIcon(scaledImage));
         }
         catch (Exception e) {
-            // Unicode knight fallback
+            // Unicode fallback
             iconLabel.setText("♞");
-            iconLabel.setFont(new Font("Serif", Font.BOLD, 40));
+            iconLabel.setFont(new Font("Serif", Font.BOLD, 26));
             iconLabel.setForeground(MY_WHITE);
+            System.err.println("Icon failed to load: " + e.getMessage()); //debug only
         }
 
         // Main menu title
@@ -67,7 +77,7 @@ public class MainScreen extends JFrame {
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         userPanel.setOpaque(false);
         JLabel userLabel = new JLabel("Logged in as: " + user.getEmail());
-        userLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        userLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
         userLabel.setForeground(MY_WHITE);
 
         userPanel.add(userLabel);
@@ -198,7 +208,7 @@ public class MainScreen extends JFrame {
         constraints.insets = new Insets(10, 0, 0, 0);
 
         JLabel subLabel = new JLabel(subtitle);
-        subLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        subLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         subLabel.setForeground(Color.GRAY);
         card.add(subLabel, constraints);
 
@@ -303,10 +313,12 @@ public class MainScreen extends JFrame {
             }
 
             public String toString() {
-                return String.format("Game #%s | %s to Move | Score: %s | Moves made: %s | Pieces left: %s",
-                                        game.getId(), game.getCurrentPlayer(),
+                return String.format("Game #%s | Players: %s vs %s | Score: %s | Turns taken: %s | Pieces left: %s",
+                                        game.getId(),
+                                        game.getHumanPlayer(),
+                                        game.getComputerPlayer(),
                                         game.getHumanPlayer().getPoints(),
-                                        game.getMoves().size(),
+                                        game.getMoves().size() / 2,
                                         game.getBoardPieces().size()
                 );
             }

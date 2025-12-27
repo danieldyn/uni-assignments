@@ -68,6 +68,12 @@ public class Game {
         }
     }
 
+    private void notifyComputerPawnPromotion() {
+        for (GameObserver observer : observers) {
+            observer.onComputerPawnPromotion();
+        }
+    }
+
     public List<Player> getPlayers() {
         return players;
     }
@@ -147,6 +153,13 @@ public class Game {
         return players.get(0);
     }
 
+    public Player getComputerPlayer() {
+        if (players.get(0).getName().equals("computer")) {
+            return players.get(0);
+        }
+        return players.get(1);
+    }
+
     public String toString(){
         return "Players: " + players + "\nBoard:\n" + board + "\nMoves: " + moves;
     }
@@ -209,6 +222,7 @@ public class Game {
         Piece newPiece =  PieceFactory.createPiece(pieceType, pawn.getColour(), pawn.getPosition());
         board.removePiece(pawn);
         board.addPiece(newPiece);
+        notifyComputerPawnPromotion(); // Just refreshes the UI, the name indicates the patch it brings
     }
 
     public boolean checkDraw() {

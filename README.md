@@ -1,2 +1,13 @@
-# oop-chess-game
-Java Chess Game featuring OOP, Design Patterns and User Interface
+# Object-Oriented Programming
+# Java Chess Game
+
+This assignment consists of a 2D Java chess game featuring:
+
+- Fundamental principles of Object-Oriented Programming
+- An User Interface
+- Four Design Patterns that fit the implementation:
+    - Singleton
+    - Factory
+    - Strategy
+    - Observer
+

@@ -4,6 +4,8 @@ import exceptions.InvalidMoveException;
 import model.*;
 import model.pieces.Piece;
 import model.pieces.Pawn;
+import ui.ConclusionScreen;
+import ui.GameScreen;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -21,6 +23,7 @@ import java.util.List;
 public class BoardPanel extends JPanel implements GameObserver {
     private final int TILE_SIZE = 100;
     private final Color MY_WHITE = new Color(245, 245, 250);
+    private static final Color MY_BLUE = new Color(34, 42, 116);
 
     private final ChessSquare[][] squares = new ChessSquare[8][8];
     private final JPanel boardPanel;
@@ -34,10 +37,12 @@ public class BoardPanel extends JPanel implements GameObserver {
     private Image whiteTileImg, blackTileImg;
 
     private boolean isFlipped = false;
+    private final GameScreen parentScreen;
 
-    public BoardPanel(User user, Game game) {
+    public BoardPanel(User user, Game game, GameScreen parentScreen) {
         this.game = game;
         this.board = game.getBoard();
+        this.parentScreen = parentScreen;
 
         this.setLayout(new BorderLayout());
         loadAssets();
@@ -49,9 +54,9 @@ public class BoardPanel extends JPanel implements GameObserver {
         boardPanel = new JPanel(new GridLayout(8, 8));
         initialiseBoard();
 
-        statusLabel = new JLabel("Current Turn: " + game.getCurrentPlayer().getColour(), SwingConstants.CENTER);
-        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        statusLabel.setBorder(new EmptyBorder(10, 0, 10, 0));
+        statusLabel = new JLabel("Current Turn: " + game.getCurrentPlayer().getName(), SwingConstants.CENTER);
+        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        statusLabel.setBorder(new LineBorder(MY_BLUE, 2));
 
         this.add(boardPanel, BorderLayout.CENTER);
         this.add(statusLabel, BorderLayout.SOUTH);
@@ -68,9 +73,7 @@ public class BoardPanel extends JPanel implements GameObserver {
         highlightLastMove(move);
     }
 
-    public void onPieceCaptured(Piece piece) {
-        // TODO update graphics
-    }
+    public void onPieceCaptured(Piece piece) { }
 
     public void onPawnPromotion(Pawn pawn) {
         JPanel inputPanel = new JPanel(new GridLayout(4, 1, 5, 5));
@@ -103,13 +106,17 @@ public class BoardPanel extends JPanel implements GameObserver {
         }
     }
 
+    public void onComputerPawnPromotion() {
+        refreshBoard();
+    }
+
     public void onPlayerSwitch(Player currentPlayer) {
-        statusLabel.setText(String.format("%s's Turn (Score: %d)", currentPlayer.getColour(), currentPlayer.getPoints()));
+        statusLabel.setText(String.format("%s's Turn (Score: %d)", currentPlayer.getName(), currentPlayer.getPoints()));
         checkGameState();
 
         // Trigger computer turn here
         if (currentPlayer.getName().equals("computer")) {
-            // Run in separate thread to not freeze UI
+            // Run in separate thread to avoid freezing UI
             new Thread(() -> {
                 try {
                     Thread.sleep(2500); // Milliseconds
@@ -161,7 +168,6 @@ public class BoardPanel extends JPanel implements GameObserver {
                 selectedSquare = clickedSquare;
                 selectedSquare.setBorder(new LineBorder(Color.YELLOW, 3));
                 highlightLegalMoves(piece);
-                //System.out.println("Selected: " + piece); // Debug only
             }
         }
         else
@@ -184,8 +190,7 @@ public class BoardPanel extends JPanel implements GameObserver {
                     handleSquareClick(clickedSquare); // Recursive select
                 }
                 else {
-                    // TODO Invalid move feedback could go here
-                    System.out.println("Invalid Move");
+                    statusLabel.setText("Invalid Move!");
                 }
             }
         }
@@ -206,18 +211,62 @@ public class BoardPanel extends JPanel implements GameObserver {
 
         switch (status) {
             case LOSE_CHECKMATE:
-                JOptionPane.showMessageDialog(this, "CHECKMATE! " + game.getCurrentPlayer().getColour() + " loses!");
+                statusLabel.setText("CHECKMATE! Game Over.");
+                statusLabel.setForeground(Color.RED);
+
+                // 2 second wait before transition
+                Timer delayTimer = new Timer(2000, new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        parentScreen.dispose();
+                        if (game.getCurrentPlayer().getName().equals("computer")) {
+                            new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                        }
+                        else {
+                            new ConclusionScreen(game, ExitCodes.LOSE_CHECKMATE);
+                        }
+                    }
+                });
+
+                delayTimer.setRepeats(false); // Only run once
+                delayTimer.start();
+                break;
+
+            case WIN_CHECKMATE:
+                statusLabel.setText("--->  CHECKMATE! Game Over.  <---");
+                statusLabel.setForeground(Color.RED);
+                
+                delayTimer = new Timer(2000, new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        parentScreen.dispose();
+                        new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                    }
+                });
+
+                delayTimer.setRepeats(false); // Only run once
+                delayTimer.start();
                 break;
 
             case DRAW:
-                JOptionPane.showMessageDialog(this, "STALEMATE! The game is a draw.");
+                statusLabel.setText("--->  IT'S A DRAW! Game Over.  <---");
+                statusLabel.setForeground(Color.RED);
+
+                delayTimer = new Timer(2000, new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        parentScreen.dispose();
+                        new ConclusionScreen(game, ExitCodes.DRAW);
+                    }
+                });
+
+                delayTimer.setRepeats(false); // Only run once
+                delayTimer.start();
                 break;
 
             case CONTINUE:
                 if (board.isKingInCheck(game.getCurrentPlayer().getColour())) {
-                    statusLabel.setText("CHECK! " + game.getCurrentPlayer().getColour() + " to move.");
+                    statusLabel.setText("CHECK! " + game.getCurrentPlayer().getName() + " to move.");
                     statusLabel.setForeground(Color.RED);
-                } else {
+                }
+                else {
                     statusLabel.setForeground(Color.BLACK);
                 }
                 break;

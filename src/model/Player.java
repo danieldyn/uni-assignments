@@ -2,6 +2,7 @@ package model;
 
 import exceptions.InvalidMoveException;
 import model.pieces.Piece;
+import model.strategies.ScoreStrategy;
 import model.strategies.StandardScoreStrategy;
 
 import java.util.List;
@@ -92,8 +93,8 @@ public class Player {
         return points;
     }
 
-    public void setPoints(int points) {
-        this.points = points;
+    public ScoreStrategy getScoreStrategy() {
+        return scoreStrategy;
     }
 
     public String toString() {

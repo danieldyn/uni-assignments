@@ -15,9 +15,9 @@ import java.awt.event.MouseEvent;
 public class LoginScreen extends JFrame {
     private static final int SCREEN_WIDTH = 1500;
     private static final int SCREEN_HEIGHT = 750;
-    private final Color MY_WHITE = new Color(245, 245, 250);
-    private final Color MY_GREEN = new Color(38, 173, 46);
-    private final Color MY_BLUE = new Color(34, 56, 214);
+    private static final Color MY_WHITE = new Color(245, 245, 250);
+    private static final Color MY_GREEN = new Color(38, 173, 46);
+    private static final Color MY_BLUE = new Color(34, 56, 214);
     private final JTextField emailField;
     private final JPasswordField passwordField;
 
@@ -51,7 +51,7 @@ public class LoginScreen extends JFrame {
         constraints.gridy++; // Next row, email label
         constraints.insets = new Insets(5, 5, 5, 5);
         JLabel emailLabel = new JLabel("Email Address:");
-        emailLabel.setFont(new Font("Sans Serif", Font.BOLD, 15));
+        emailLabel.setFont(new Font("Sans Serif", Font.BOLD, 18));
         emailLabel.setForeground(Color.DARK_GRAY);
         loginPanel.add(emailLabel, constraints);
 
@@ -59,13 +59,13 @@ public class LoginScreen extends JFrame {
         emailField = new JTextField(20);
         emailField.setPreferredSize(new Dimension(200, 40));
         emailField.setHorizontalAlignment(JTextField.CENTER);
-        emailField.setFont(new Font("Sans Serif", Font.PLAIN, 16));
+        emailField.setFont(new Font("Sans Serif", Font.BOLD, 15));
         loginPanel.add(emailField, constraints);
 
         constraints.gridy++; // Next row, password label
         constraints.insets = new Insets(25, 5, 5, 5);
         JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setFont(new Font("Sans Serif", Font.BOLD, 15));
+        passwordLabel.setFont(new Font("Sans Serif", Font.BOLD, 18));
         passwordLabel.setForeground(Color.DARK_GRAY);
         loginPanel.add(passwordLabel, constraints);
 
@@ -74,7 +74,7 @@ public class LoginScreen extends JFrame {
         passwordField = new JPasswordField(20);
         passwordField.setPreferredSize(new Dimension(200, 40));
         passwordField.setHorizontalAlignment(JTextField.CENTER);
-        passwordField.setFont(new Font("Sans Serif", Font.PLAIN, 16));
+        passwordField.setFont(new Font("Sans Serif", Font.BOLD, 15));
         loginPanel.add(passwordField, constraints);
 
         // Buttons: natural size + centred in the column
@@ -138,8 +138,8 @@ public class LoginScreen extends JFrame {
 
     private void styleButton(JButton button, Color baseColour) {
         button.setFont(new Font("SansSerif", Font.BOLD, 14));
-        button.setForeground(baseColour);
-        button.setBackground(Color.WHITE);
+        button.setForeground(Color.WHITE);
+        button.setBackground(baseColour);
         button.setFocusPainted(false); // Helps when clicking
         button.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Turns cursor into a hand
 
@@ -151,13 +151,13 @@ public class LoginScreen extends JFrame {
         // Mouse hovering effect
         button.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                button.setBackground(baseColour);
-                button.setForeground(Color.WHITE);
+                button.setBackground(Color.WHITE);
+                button.setForeground(baseColour);
             }
 
             public void mouseExited(MouseEvent e) {
-                button.setBackground(Color.WHITE);
-                button.setForeground(baseColour);
+                button.setBackground(baseColour);
+                button.setForeground(Color.WHITE);
             }
         });
     }

@@ -36,6 +36,10 @@ public class User {
     }
 
     public void setPoints(int points) {
+        if (points < 0) {
+            points = 0;
+            return;
+        }
         this.points = points;
     }
 
