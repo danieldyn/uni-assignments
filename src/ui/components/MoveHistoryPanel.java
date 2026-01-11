@@ -52,15 +52,6 @@ public class MoveHistoryPanel extends JPanel implements GameObserver {
             addMoveToPanel(m);
         }
 
-        // 5. Add a "Pusher" component to force items to the top
-        // This prevents the list from vertically centering if there are few moves
-        //GridBagConstraints pushConstraints = new GridBagConstraints();
-        //pushConstraints.gridx = 0;
-        //pushConstraints.gridy = 9999;
-        //pushConstraints.weighty = 1.0; // Consume all vertical space
-        //listPanel.add(new JPanel() {{ setOpaque(false); }}, pushConstraints);
-
-        // Assembly
         this.add(listPanel, BorderLayout.CENTER);
     }
 

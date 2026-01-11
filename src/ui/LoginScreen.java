@@ -133,6 +133,7 @@ public class LoginScreen extends JFrame {
         // Final assembly
         this.add(leftPanel);
         this.add(rightPanel);
+
         this.setVisible(true);
     }
 
@@ -169,10 +170,17 @@ public class LoginScreen extends JFrame {
         // Use Main class' login method
         User user = Main.getInstance().login(email, password);
         if (user != null) {
-            JOptionPane.showMessageDialog(null, "Login Successful!");
-            this.dispose();
-            // Open main game window after successful login
-            new MainScreen(user);
+            JOptionPane.showMessageDialog(this, "Login Successful!");
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new MainScreen(user);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
         }
         else {
             JOptionPane.showMessageDialog(null, "Invalid email or password!");
@@ -193,9 +201,16 @@ public class LoginScreen extends JFrame {
         User user = Main.getInstance().newAccount(email, password);
         if (user != null) {
             JOptionPane.showMessageDialog(this, "Account Successfully Created!");
-            this.dispose();
-            // Open main game window after successful account creation
-            new MainScreen(user);
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new MainScreen(user);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
         }
     }
 }

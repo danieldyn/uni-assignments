@@ -186,8 +186,17 @@ public class GameScreen extends JFrame {
         // Save game changes
         Main.getInstance().write();
         Main.getInstance().reload();
-        this.dispose();
-        new MainScreen(currentUser);
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Create and show the new screen, then dispose of the old one
+                new MainScreen(currentUser);
+                this.dispose();
+            }
+            catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+            }
+        });
     }
 
     private void quitGame() {
@@ -198,9 +207,17 @@ public class GameScreen extends JFrame {
         if (response == JOptionPane.YES_OPTION) {
             Main.getInstance().reload();
             User currentUser = Main.getInstance().getCurrentUser();
-            // Return to Main Screen
-            this.dispose();
-            new MainScreen(currentUser);
+
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new MainScreen(currentUser);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
         }
     }
 
@@ -210,8 +227,16 @@ public class GameScreen extends JFrame {
                 "Confirm Surrender", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (response == JOptionPane.YES_OPTION) {
-            this.dispose();
-            new ConclusionScreen(currentGame, ExitCodes.SURRENDER);
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new ConclusionScreen(currentGame, ExitCodes.SURRENDER);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
         }
     }
 }

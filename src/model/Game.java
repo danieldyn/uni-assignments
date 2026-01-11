@@ -219,7 +219,7 @@ public class Game {
     }
 
     public void promotePawn(Pawn pawn, String pieceType) {
-        Piece newPiece =  PieceFactory.createPiece(pieceType, pawn.getColour(), pawn.getPosition());
+        Piece newPiece = PieceFactory.createPiece(pieceType, pawn.getColour(), pawn.getPosition());
         board.removePiece(pawn);
         board.addPiece(newPiece);
         notifyComputerPawnPromotion(); // Just refreshes the UI, the name indicates the patch it brings

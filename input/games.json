@@ -2389,6 +2389,16 @@
         "playerColor":"BLACK",
         "from":"C7",
         "to":"C5"
+      },
+      {
+        "playerColor":"WHITE",
+        "from":"G1",
+        "to":"F3"
+      },
+      {
+        "playerColor":"BLACK",
+        "from":"F7",
+        "to":"F5"
       }
     ],
     "id":15,
@@ -2418,11 +2428,6 @@
         "color":"WHITE",
         "position":"F1",
         "type":"B"
-      },
-      {
-        "color":"WHITE",
-        "position":"G1",
-        "type":"N"
       },
       {
         "color":"WHITE",
@@ -2466,6 +2471,11 @@
       },
       {
         "color":"WHITE",
+        "position":"F3",
+        "type":"N"
+      },
+      {
+        "color":"WHITE",
         "position":"A4",
         "type":"Q"
       },
@@ -2486,6 +2496,11 @@
       },
       {
         "color":"BLACK",
+        "position":"F5",
+        "type":"P"
+      },
+      {
+        "color":"BLACK",
         "position":"G6",
         "type":"P"
       },
@@ -2502,11 +2517,6 @@
       {
         "color":"BLACK",
         "position":"E7",
-        "type":"P"
-      },
-      {
-        "color":"BLACK",
-        "position":"F7",
         "type":"P"
       },
       {

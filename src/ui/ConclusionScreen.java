@@ -3,6 +3,7 @@ package ui;
 import app.Main;
 import model.ExitCodes;
 import model.Game;
+import model.User;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -36,7 +37,7 @@ public class ConclusionScreen extends JFrame {
         JPanel cardPanel = new JPanel();
         cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
         cardPanel.setBackground(MY_WHITE);
-        cardPanel.setPreferredSize(new Dimension(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2));
+        cardPanel.setMaximumSize(new Dimension(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2));
         LineBorder line = new LineBorder(MY_BLUE, 4);
         EmptyBorder margin = new EmptyBorder(40, 60, 40, 60);
         cardPanel.setBorder(new CompoundBorder(line, margin));
@@ -157,8 +158,20 @@ public class ConclusionScreen extends JFrame {
     }
 
     private void returnToMenu() {
-        this.dispose();
-        new MainScreen(Main.getInstance().getCurrentUser());
+        // Reload the data from disk before heading to the main menu
+        Main.getInstance().reload();
+        User reloadedUser = Main.getInstance().getCurrentUser();
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Create and show the new screen, then dispose of the old one
+                new MainScreen(reloadedUser);
+                this.dispose();
+            }
+            catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+            }
+        });
     }
 
     private void exitApp() {

@@ -12,7 +12,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.util.List;
 
@@ -37,8 +36,9 @@ public class MainScreen extends JFrame {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BorderLayout());
         headerPanel.setBackground(MY_GREEN);
+        headerPanel.setMinimumSize(new Dimension(SCREEN_WIDTH, 40));
+        headerPanel.add(Box.createRigidArea(new Dimension(0, 80)), BorderLayout.CENTER);
         headerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        headerPanel.setPreferredSize(new Dimension(SCREEN_WIDTH, 80));
 
         // Top left: icon + "Main Menu"
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
@@ -62,7 +62,7 @@ public class MainScreen extends JFrame {
             iconLabel.setText("♞");
             iconLabel.setFont(new Font("Serif", Font.BOLD, 26));
             iconLabel.setForeground(MY_WHITE);
-            System.err.println("Icon failed to load: " + e.getMessage()); //debug only
+            //System.err.println("Icon failed to load: " + e.getMessage()); //debug only
         }
 
         // Main menu title
@@ -238,8 +238,16 @@ public class MainScreen extends JFrame {
         JOptionPane.showMessageDialog(this, "You have been logged out!");
 
         // Replace with the login screen
-        this.dispose();
-        new LoginScreen("Chess App");
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Create and show the new screen, then dispose of the old one
+                new LoginScreen("Chess App");
+                this.dispose();
+            }
+            catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+            }
+        });
     }
 
     private void handleNewGame() {
@@ -273,20 +281,28 @@ public class MainScreen extends JFrame {
             // Safety check
             if (alias.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Alias cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
-                handleNewGame();
+                handleNewGame(); // Recursive retry
                 return;
             }
             if (colour == null) {
                 JOptionPane.showMessageDialog(this, "Colour cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
-                handleNewGame();
+                handleNewGame(); // Recursive retry
                 return;
             }
 
             Game newGame = Main.getInstance().startNewGame(alias, colour);
 
             // Replace with game window
-            this.dispose();
-            new GameScreen(Main.getInstance().getCurrentUser(), newGame);
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new GameScreen(Main.getInstance().getCurrentUser(), newGame);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
         }
     }
 
@@ -349,9 +365,17 @@ public class MainScreen extends JFrame {
             // Choice interpretation
             if (choice == JOptionPane.YES_OPTION) {
                 // Resume game, replace with game screen
-                this.dispose();
                 selectedGame.resume();
-                new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        // Create and show the new screen, then dispose of the old one
+                        new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
+                        this.dispose();
+                    }
+                    catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                    }
+                });
             }
 
             else if (choice == JOptionPane.NO_OPTION) {

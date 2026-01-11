@@ -97,6 +97,7 @@ public class Main {
     public Game startNewGame(String alias, String playerColour) {
         Player player = new Player(alias, playerColour);
         Player computer = null;
+
         if (playerColour.toUpperCase().equals("WHITE")) {
             computer = new Player("computer", "BLACK");
         } else {

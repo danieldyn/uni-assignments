@@ -6,6 +6,7 @@ import model.pieces.Piece;
 import model.pieces.Pawn;
 import ui.ConclusionScreen;
 import ui.GameScreen;
+import ui.MainScreen;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -217,12 +218,29 @@ public class BoardPanel extends JPanel implements GameObserver {
                 // 2 second wait before transition
                 Timer delayTimer = new Timer(2000, new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        parentScreen.dispose();
                         if (game.getCurrentPlayer().getName().equals("computer")) {
-                            new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                            SwingUtilities.invokeLater(() -> {
+                                try {
+                                    // Create and show the new screen, then dispose of the old one
+                                    new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                                    parentScreen.dispose();
+                                }
+                                catch (Exception exception) {
+                                    JOptionPane.showMessageDialog(parentScreen, "Error loading menu: " + exception.getMessage());
+                                }
+                            });
                         }
                         else {
-                            new ConclusionScreen(game, ExitCodes.LOSE_CHECKMATE);
+                            SwingUtilities.invokeLater(() -> {
+                                try {
+                                    // Create and show the new screen, then dispose of the old one
+                                    new ConclusionScreen(game, ExitCodes.LOSE_CHECKMATE);
+                                    parentScreen.dispose();
+                                }
+                                catch (Exception exception) {
+                                    JOptionPane.showMessageDialog(parentScreen, "Error loading menu: " + exception.getMessage());
+                                }
+                            });
                         }
                     }
                 });
@@ -237,8 +255,16 @@ public class BoardPanel extends JPanel implements GameObserver {
                 
                 delayTimer = new Timer(2000, new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        parentScreen.dispose();
-                        new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                // Create and show the new screen, then dispose of the old one
+                                new ConclusionScreen(game, ExitCodes.WIN_CHECKMATE);
+                                parentScreen.dispose();
+                            }
+                            catch (Exception exception) {
+                                JOptionPane.showMessageDialog(parentScreen, "Error loading menu: " + exception.getMessage());
+                            }
+                        });
                     }
                 });
 
@@ -252,8 +278,16 @@ public class BoardPanel extends JPanel implements GameObserver {
 
                 delayTimer = new Timer(2000, new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        parentScreen.dispose();
-                        new ConclusionScreen(game, ExitCodes.DRAW);
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                // Create and show the new screen, then dispose of the old one
+                                new ConclusionScreen(game, ExitCodes.DRAW);
+                                parentScreen.dispose();
+                            }
+                            catch (Exception exception) {
+                                JOptionPane.showMessageDialog(parentScreen, "Error loading menu: " + exception.getMessage());
+                            }
+                        });
                     }
                 });
 
