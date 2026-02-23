@@ -1,0 +1,389 @@
+package ui;
+
+import app.Main;
+import model.Game;
+import model.User;
+
+import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+public class MainScreen extends JFrame {
+    private static final int SCREEN_WIDTH = 1500;
+    private static final int SCREEN_HEIGHT = 750;
+    private static final Color MY_WHITE = new Color(245, 245, 250);
+    private static final Color MY_GREEN = new Color(38, 173, 46);
+    private static final Color MY_BLUE = new Color(34, 56, 214);
+    private static final Color MY_LIGHT_BLUE = new Color(161, 199, 235);
+    private static final Color MY_GREY = new Color(124, 140, 163);
+    private static final Color MY_LIGHT_GRAY = new Color(156, 156, 156);
+
+    public MainScreen(User user) {
+        super("Chess App - Main Menu");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.setLocationRelativeTo(null);
+        this.setLayout(new BorderLayout());
+
+        // Header (North)
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setBackground(MY_GREEN);
+        headerPanel.setMinimumSize(new Dimension(SCREEN_WIDTH, 40));
+        headerPanel.add(Box.createRigidArea(new Dimension(0, 80)), BorderLayout.CENTER);
+        headerPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        // Top left: icon + "Main Menu"
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        titlePanel.setOpaque(false);
+
+        // Icon setup
+        JLabel iconLabel = new JLabel();
+        try {
+            File imgFile = new File("assets/icons/game_icon.png");
+
+            if (!imgFile.exists()) {
+                throw new IOException("Image file not found");
+            }
+
+            Image img = javax.imageio.ImageIO.read(imgFile);
+            Image scaledImage = img.getScaledInstance(45, 45, Image.SCALE_SMOOTH);
+            iconLabel.setIcon(new ImageIcon(scaledImage));
+        }
+        catch (Exception e) {
+            // Unicode fallback
+            iconLabel.setText("♞");
+            iconLabel.setFont(new Font("Serif", Font.BOLD, 26));
+            iconLabel.setForeground(MY_WHITE);
+            //System.err.println("Icon failed to load: " + e.getMessage()); //debug only
+        }
+
+        // Main menu title
+        JLabel titleLabel = new JLabel("Main Menu");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 26));
+        titleLabel.setForeground(MY_WHITE);
+
+        titlePanel.add(iconLabel);
+        titlePanel.add(titleLabel);
+
+        // Top right: "Logged in as: username"
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        userPanel.setOpaque(false);
+        JLabel userLabel = new JLabel("Logged in as: " + user.getEmail());
+        userLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        userLabel.setForeground(MY_WHITE);
+
+        userPanel.add(userLabel);
+
+        // Header assembly
+        headerPanel.add(titlePanel, BorderLayout.WEST);
+        headerPanel.add(userPanel, BorderLayout.EAST);
+
+        // Centre: main content displayed vertically
+        JPanel centrePanel = new JPanel();
+        centrePanel.setBackground(MY_LIGHT_GRAY);
+        centrePanel.setLayout(new GridBagLayout());
+        centrePanel.setBorder(new EmptyBorder(30, SCREEN_WIDTH / 4, 30, SCREEN_WIDTH / 4));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.weightx = 0.4;
+        constraints.anchor = GridBagConstraints.NORTH;
+
+        // User stat card at the top
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+
+        JPanel statsContainer = new JPanel(new GridLayout(1, 2, 20, 0));
+        statsContainer.setBackground(MY_LIGHT_GRAY);
+        statsContainer.add(createStatisticCard("Total Points", String.valueOf(user.getPoints()), "★", Color.ORANGE));
+        statsContainer.add(createStatisticCard("Active Games", String.valueOf(user.getActiveGames().size()), "♟", MY_GREEN));
+        constraints.insets = new Insets(0,0, 30, 0);
+        centrePanel.add(statsContainer, constraints);
+
+        // View existing games
+        constraints.gridy++;
+        constraints.insets = new Insets(0, 0, 15, 0);
+        JPanel continueCard = createMenuCard("View Games", "Get a list of your existing games and manage them.");
+        continueCard.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                handleViewGames();
+            }
+        });
+        centrePanel.add(continueCard, constraints);
+
+        // New game
+        constraints.gridy++;
+        constraints.insets = new Insets(0, 0, 15, 0);
+        JPanel newGameCard = createMenuCard("New Game", "Start a new game against the computer");
+        newGameCard.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                handleNewGame();
+            }
+        });
+        centrePanel.add(newGameCard, constraints);
+
+        // Logout
+        constraints.gridy++;
+        constraints.insets = new Insets(0, 0, 50, 0);
+        JPanel logoutCard = createMenuCard("Logout", "Return to the login screen");
+        logoutCard.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                handleLogout();
+            }
+        });
+        centrePanel.add(logoutCard, constraints);
+
+        // Final assembly
+        this.add(headerPanel, BorderLayout.NORTH);
+        this.add(centrePanel, BorderLayout.CENTER);
+
+        this.setVisible(true);
+    }
+
+    private JPanel createStatisticCard(String title, String value, String iconUnicode, Color colour) {
+        JPanel card = new JPanel(new GridBagLayout());
+        LineBorder line = new LineBorder(MY_GREY, 2);
+        EmptyBorder margin = new EmptyBorder(15, 20, 15, 20);
+        card.setBackground(MY_LIGHT_BLUE);
+        card.setBorder(new CompoundBorder(line, margin));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.anchor = GridBagConstraints.CENTER;
+
+        // Icon on the left
+        JLabel icon = new JLabel(iconUnicode);
+        icon.setFont(new Font("SansSerif", Font.PLAIN, 40));
+        icon.setForeground(colour);
+        card.add(icon, constraints);
+
+        // Statistic in the centre
+        constraints.gridy++;
+        JLabel valLabel = new JLabel(value);
+        valLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
+        valLabel.setForeground(Color.DARK_GRAY);
+        card.add(valLabel, constraints);
+
+        // Title on the right
+        constraints.gridy++;
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titleLabel.setForeground(MY_GREY);
+        card.add(titleLabel, constraints);
+
+        return card;
+    }
+
+    private JPanel createMenuCard(String title, String subtitle) {
+        JPanel card = new JPanel();
+        card.setLayout(new GridBagLayout());
+        card.setBackground(MY_WHITE);
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Line border with padding
+        LineBorder line = new LineBorder(MY_GREY, 2);
+        EmptyBorder margin = new EmptyBorder(20, 20, 20, 20);
+        card.setBorder(new CompoundBorder(line, margin));
+
+        // Card contents
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        titleLabel.setForeground(MY_BLUE);
+        card.add(titleLabel, constraints);
+
+        constraints.gridy++;
+        constraints.insets = new Insets(10, 0, 0, 0);
+
+        JLabel subLabel = new JLabel(subtitle);
+        subLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        subLabel.setForeground(Color.GRAY);
+        card.add(subLabel, constraints);
+
+        // Mouse hover effect
+        card.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                card.setBackground(MY_LIGHT_BLUE);
+                LineBorder line = new LineBorder(MY_BLUE, 2);
+                EmptyBorder margin = new EmptyBorder(19, 19, 19, 19);
+                card.setBorder(new CompoundBorder(line, margin));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                card.setBackground(MY_WHITE);
+                // Hardcoded border colour for visibility
+                LineBorder line = new LineBorder(MY_GREY, 2);
+                EmptyBorder margin = new EmptyBorder(20, 20, 20, 20);
+                card.setBorder(new CompoundBorder(line, margin));
+            }
+        });
+
+        return card;
+    }
+
+    private void handleLogout() {
+        Main.getInstance().logout();
+        JOptionPane.showMessageDialog(this, "You have been logged out!");
+
+        // Replace with the login screen
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Create and show the new screen, then dispose of the old one
+                new LoginScreen("Chess App");
+                this.dispose();
+            }
+            catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+            }
+        });
+    }
+
+    private void handleNewGame() {
+        JPanel inputPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+        inputPanel.setBackground(MY_WHITE);
+
+        // Alias selection
+        JLabel aliasLabel = new JLabel("Enter your Alias:");
+        aliasLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        JTextField aliasField = new JTextField();
+
+        // Colour selection
+        JLabel colourLabel = new JLabel("Choose your colour:");
+        colourLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        String[] colours = {"White", "Black"};
+        JComboBox<String> colourBox = new JComboBox<>(colours);
+
+        inputPanel.add(aliasLabel);
+        inputPanel.add(aliasField);
+        inputPanel.add(colourLabel);
+        inputPanel.add(colourBox);
+
+        // Draw a child option pane
+        int result = JOptionPane.showConfirmDialog(this, inputPanel,"New Game Setup",
+                                                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String alias = aliasField.getText().trim();
+            String colour = (String)colourBox.getSelectedItem();
+
+            // Safety check
+            if (alias.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Alias cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+                handleNewGame(); // Recursive retry
+                return;
+            }
+            if (colour == null) {
+                JOptionPane.showMessageDialog(this, "Colour cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+                handleNewGame(); // Recursive retry
+                return;
+            }
+
+            Game newGame = Main.getInstance().startNewGame(alias, colour);
+
+            // Replace with game window
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // Create and show the new screen, then dispose of the old one
+                    new GameScreen(Main.getInstance().getCurrentUser(), newGame);
+                    this.dispose();
+                }
+                catch (Exception e) {
+                    JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                }
+            });
+        }
+    }
+
+    private void handleViewGames() {
+        List<Game> activeGames = Main.getInstance().getCurrentUser().getActiveGames();
+
+        // Edge case for no games
+        if (activeGames == null || activeGames.isEmpty()) {
+            JOptionPane.showMessageDialog(this,"You have no active games to view.\nTry starting a new game against the computer!",
+                                        "No Active Games", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Inner class for list items
+        class GameListItem {
+            private final Game game;
+
+            public GameListItem(Game game) {
+                this.game = game;
+            }
+
+            public Game getGame() {
+                return game;
+            }
+
+            public String toString() {
+                return String.format("Game #%s | Players: %s vs %s | Score: %s | Turns taken: %s | Pieces left: %s",
+                                        game.getId(),
+                                        game.getHumanPlayer(),
+                                        game.getComputerPlayer(),
+                                        game.getHumanPlayer().getPoints(),
+                                        game.getMoves().size() / 2,
+                                        game.getBoardPieces().size()
+                );
+            }
+        }
+
+        GameListItem[] options = new GameListItem[activeGames.size()];
+        for (int i = 0; i < activeGames.size(); i++) {
+            options[i] = new GameListItem(activeGames.get(i));
+        }
+
+        // Selection pane
+        Object selection = JOptionPane.showInputDialog(
+                this,"Select a game:","View Games", JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]
+        );
+
+        // User selection
+        if (selection != null) {
+            Game selectedGame = ((GameListItem) selection).getGame();
+
+            String[] actions = {"Resume Game", "Delete Game", "Cancel"};
+            int choice = JOptionPane.showOptionDialog(
+                    this, "What would you like to do with Game #" + selectedGame.getId() + "?",
+                    "Game Options", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, actions, actions[0]
+            );
+
+            // Choice interpretation
+            if (choice == JOptionPane.YES_OPTION) {
+                // Resume game, replace with game screen
+                selectedGame.resume();
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        // Create and show the new screen, then dispose of the old one
+                        new GameScreen(Main.getInstance().getCurrentUser(), selectedGame);
+                        this.dispose();
+                    }
+                    catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, "Error loading menu: " + e.getMessage());
+                    }
+                });
+            }
+
+            else if (choice == JOptionPane.NO_OPTION) {
+                // Delete game
+                Main.getInstance().deleteGame(selectedGame);
+                JOptionPane.showMessageDialog(this, "Game deleted successfully.");
+                handleViewGames();
+            }
+        }
+    }
+}
