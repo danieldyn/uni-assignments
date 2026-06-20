@@ -6,25 +6,15 @@
 
 (define ITEMS 5)
 
-
-; TODO (0p)
-; Aveți libertatea să vă structurați programul cum doriți
-; (dar cu restricțiile de mai jos), astfel încât
-; funcția serve să funcționeze conform specificației.
-; 
-; Restricții (impuse de checker):
-; - va exista în continuare funcția (empty-counter index)
-; - veți reprezenta cozile folosind noul TDA queue
-
-; Acum ca exista si case closed si open, avem mai multe combinatii de diferentiat:
-; - fast si closed
-; - fast si open
-; - slow si closed
-; - slow si open
-; Decat sa processez 4 liste cu suprapuneri inevitabile, adaug un camp boolean open?
+; Now that there are both closed and open counters, we have multiple combinations to differentiate:
+; - fast and closed
+; - fast and open
+; - slow and closed
+; - slow and open
+; Rather than processing 4 lists with inevitable overlaps, we added a boolean field open?
 (define-struct counter (index open? tt et queue) #:transparent)
 
-; Cod preluat din etapa3.rkt
+; Code taken from part 3
 (define (update f counters index)
   (cond
     ((null? counters) '())
@@ -83,7 +73,7 @@
                    [et 0]
                    [tt (- (counter-tt C) (counter-et C))])))
 
-; Functii noi care iau in calcul campul adaugat in structura counter
+; New functions that take into account the field added in the counter structure
 (define (empty-counter index)
   (make-counter index #t 0 0 empty-queue))
 
@@ -93,10 +83,10 @@
 (define (set-as-closed C)
   (struct-copy counter C [open? #f]))
 
-(define (set-tt-to-et C) ; se comporta ca si cum toate persoanele de la casa, mai putin prima, au fost redistribuite
+(define (set-tt-to-et C) ; behaves as if all people at the counter, except the first one, have been redistributed
   (struct-copy counter C [tt (counter-et C)]))
 
-(define (remove-rest C) ; gestioneaza redistribuirea clientilor de la o casa pentru a o inchide
+(define (remove-rest C) ; manages the redistribution of clients from a counter in order to close it
   (if (queue-empty? (counter-queue C))
       C
       (let* ([queue (counter-queue C)]
@@ -106,145 +96,141 @@
               (struct-copy counter C [queue (enqueue head empty-queue)])
               (loop (dequeue rest)))))))
 
-  (define close-counter
-    (compose set-as-closed set-tt-to-et remove-rest)) ; combina tot ce trebuie pentru a determina noua stare a cozii la inchidere
+(define close-counter
+  (compose set-as-closed set-tt-to-et remove-rest)) ; combines everything necessary to determine the new state of the queue upon closing
+
+; Compared to part 3, there are changes to the customer flow in:
+; - the format of the request list (requests)
+; - the format of the function's result (explained below)
+; requests contains 6 types of requests:
+;   4 inherited from stage 3:
+;   - (<name> <n-items>) - places the person <name> in line at an open counter
+;   - (delay <index> <minutes>) - delays counter <index> by <minutes> minutes
+;   - (ensure <average>) - as long as the average tt of open counters exceeds 
+;                          <average>, adds unrestricted counters (slow counters)
+;   - <x> - updates the state of the counters according to the passage of <x> minutes
+;           since the last request (affects the tt, et, queue fields)
+;   plus 2 new ones:
+;   - (close <index>) - closes the counter with the index <index> (the counter already exists)
+;   - (open <index>) - opens the counter with the index <index> (the counter already exists)
+; The system processes the requests in order, as follows:
+; - places the person at the OPEN counter with the minimum allowed tt;
+;   it is guaranteed that the person can be distributed to a counter
+; - no modification for the situation when a counter experiences a delay
+; - if the average tt for all OPEN counters > <average>,
+;   adds slow counters until the average <= <average>
+; - no modification in modeling the passage of time
+; - a closing counter no longer receives new customers and:
+;   - the first customer (if any) continues their business at this counter
+;   - the rest of the customers are redistributed to the other counters,
+;     in the order they were standing in line
+; - an opening counter becomes available to customers again
+; The serve function returns a dotted pair between:
+; - the list of customers who have left the store, sorted chronologically
+;   - the elements of the list have the form (counter_index . name)
+;   - when multiple customers leave simultaneously, sort by counter index
+; - the list of non-empty queues in the final state, sorted by counter index
+;   - the elements of the list have the form (counter_index . queue) (the queue is of type queue)
+
+(define (serve requests fast-counters slow-counters)
+
+  (define (serve-helper done-clients requests fast-counters slow-counters) ; helper that also accepts the list of clients who have finished
   
-  ; TODO 7 (70p)
-  ; Implementați funcția care simulează fluxul clienților pe la case.
-  ; ATENȚIE: Față de etapa 3, apar modificări în:
-  ; - formatul listei de cereri (requests)
-  ; - formatul rezultatului funcției (explicat mai jos)
-  ; requests conține 6 tipuri de cereri:
-  ;   4 moștenite din etapa 3:
-  ;   - (<name> <n-items>) - așază persoana <name> la coadă la o casă deschisă
-  ;   - (delay <index> <minutes>) - întârzie casa <index> cu <minutes> minute
-  ;   - (ensure <average>) - cât timp tt-ul mediu al caselor deschise depășește 
-  ;                          <average>, adaugă case fără restricții (case slow)
-  ;   - <x> - actualizează starea caselor conform cu trecerea a <x> minute
-  ;           de la ultima cerere (afectează câmpurile tt, et, queue)
-  ;   plus 2 noi:
-  ;   - (close <index>) - închide casa cu indexul <index> (casa există deja)
-  ;   - (open <index>) - deschide casa cu indexul <index> (casa există deja)
-  ; Sistemul procesează cererile în ordine, astfel:
-  ; - așază persoana la casa DESCHISĂ cu tt minim la care are voie;
-  ;   se garantează că persoana poate fi distribuită la o casă
-  ; - nicio modificare pentru situația când o casă suferă o întârziere
-  ; - dacă tt-ul mediu pentru toate casele DESCHISE > <average>,
-  ;   adaugă case slow până când media <= <average>
-  ; - nicio modificare în modelarea trecerii timpului
-  ; - o casă care se închide nu mai primește clienți noi și:
-  ;   - primul client (dacă există) își continuă treaba la această casă
-  ;   - restul clienților se redistribuie la celelalte case,
-  ;     în ordinea în care erau așezați la coadă
-  ; - o casă care se deschide redevine disponibilă pentru clienți
-  ; Funcția serve întoarce o pereche cu punct între:
-  ; - lista clienților care au părăsit magazinul, sortată cronologic
-  ;   - elementele listei au forma (index_casă . nume)
-  ;   - când mai mulți clienți ies simultan, sortați după indexul casei
-  ; - lista cozilor nevide în starea finală, sortată după indexul casei
-  ;   - elementele listei au forma (index_casă . coadă) (coada este de tip queue)
+    (let* ([all-counters (append fast-counters slow-counters)] 
+           [open-counters (filter (λ (C) (counter-open? C)) all-counters)]
+           [open-slow-counters (filter (λ (C) (counter-open? C)) slow-counters)]
+           [allowed-counters (λ (n-items) (if (<= n-items ITEMS) open-counters open-slow-counters))]
+           [average-tt (/ (foldl (λ (C acc) (+ acc (counter-tt C))) 0 open-counters) (length open-counters))] ; the average only includes open counters
+           [active-counters (filter (λ (C) (not (queue-empty? (counter-queue C)))) all-counters)]) ; active means the continued existence of a client (it can be closed)
 
-  (define (serve requests fast-counters slow-counters)
-  
-    (define (serve-helper done-clients requests fast-counters slow-counters) ; helper care accepta si lista de clienti care au terminat
-    
-      (let* ([all-counters (append fast-counters slow-counters)] 
-             [open-counters (filter (λ (C) (counter-open? C)) all-counters)]
-             [open-slow-counters (filter (λ (C) (counter-open? C)) slow-counters)]
-             [allowed-counters (λ (n-items) (if (<= n-items ITEMS) open-counters open-slow-counters))]
-             [average-tt (/ (foldl (λ (C acc) (+ acc (counter-tt C))) 0 open-counters) (length open-counters))] ; media include doar casele deschise
-             [active-counters (filter (λ (C) (not (queue-empty? (counter-queue C)))) all-counters)]) ; activ inseamna in continuare existenta unui client (poate fi inchisa)
+      (define (pass-time minutes acc fast-counters slow-counters) ; manages the passage of time and the removal of clients from counters
+        (let* ([all-counters (append fast-counters slow-counters)] ; will locally shadow all-counters from the large let*
+               [active-counters (filter (λ (C) (not (queue-empty? (counter-queue C)))) all-counters)])
+          (define finish-sim ; finishes the execution of pass-time when there are guaranteed to be no more people to remove from the counters
+            (serve-helper (append done-clients acc)
+                          (cdr requests)
+                          (map (pass-time-through-counter minutes) fast-counters)
+                          (map (pass-time-through-counter minutes) slow-counters)))
 
-        ; neschimbat de la etapa 3
-        (define (pass-time minutes acc fast-counters slow-counters) ; gestioneaza trecerea timpului si scoaterea clientilor de la case
-          (let* ([all-counters (append fast-counters slow-counters)] ; va face shadowing local lui all-counters din let*-ul mare
-                 [active-counters (filter (λ (C) (not (queue-empty? (counter-queue C)))) all-counters)])
-            (define finish-sim ; finalizeaza executia pass-time cand garantat nu mai sunt persoane de scos de la case
-              (serve-helper (append done-clients acc)
-                            (cdr requests)
-                            (map (pass-time-through-counter minutes) fast-counters)
-                            (map (pass-time-through-counter minutes) slow-counters)))
- 
-            (if (null? active-counters) ; cazul simplu in care simularea se incheie
-                finish-sim
-                (let* ([first-client (min-et active-counters)] 
-                       [index (car first-client)]
-                       [first-exit (cdr first-client)])
-                  (if (> first-exit minutes) ; nimeni nu va iesi de la casa in timpul ramas 
-                      finish-sim
-                      (let* ([min-counter (car (filter (λ (C) (= index (counter-index C))) all-counters))]
-                             [name (car (top (counter-queue min-counter)))]
-                             [new-fast-counters (map (pass-time-through-counter first-exit) fast-counters)]
-                             [new-slow-counters (map (pass-time-through-counter first-exit) slow-counters)])
-                        (pass-time (- minutes first-exit) ; iese primul client si continua simularea
-                                   (append acc (list (cons index name)))
-                                   (update remove-first-from-counter new-fast-counters index)
-                                   (update remove-first-from-counter new-slow-counters index))))))))
- 
-        ; corpul let*-ului principal
-        (if (null? requests)
-            (cons done-clients (map (λ (C) (cons (counter-index C) (counter-queue C))) active-counters)) ; caz de baza nou
-            (match (car requests)
- 
-              [(list 'delay index minutes) ; neschimbat de la etapa 3
-               (serve-helper done-clients
-                             (cdr requests)
-                             (update (et-tt+ minutes) fast-counters index)
-                             (update (et-tt+ minutes) slow-counters index))]
- 
-              [(list 'ensure average) ; neschimbat de la etapa 3
-               (if (<= average-tt average) ; media e deja in target
-                   (serve-helper done-clients
-                                 (cdr requests)
-                                 fast-counters
-                                 slow-counters)
-                   (serve-helper done-clients
-                                 requests ; nu se trece la urmatorul request pana nu s-au adaugat case suficiente pentru a scadea media
-                                 fast-counters
-                                 (append slow-counters (list (empty-counter (add1 (length all-counters)))))))]
+          (if (null? active-counters) ; the simple case where the simulation ends
+              finish-sim
+              (let* ([first-client (min-et active-counters)] 
+                     [index (car first-client)]
+                     [first-exit (cdr first-client)])
+                (if (> first-exit minutes) ; no one will leave the counter in the remaining time 
+                    finish-sim
+                    (let* ([min-counter (car (filter (λ (C) (= index (counter-index C))) all-counters))]
+                           [name (car (top (counter-queue min-counter)))]
+                           [new-fast-counters (map (pass-time-through-counter first-exit) fast-counters)]
+                           [new-slow-counters (map (pass-time-through-counter first-exit) slow-counters)])
+                      (pass-time (- minutes first-exit) ; the first client leaves and the simulation continues
+                                 (append acc (list (cons index name)))
+                                 (update remove-first-from-counter new-fast-counters index)
+                                 (update remove-first-from-counter new-slow-counters index))))))))
 
-              [(list 'open index)
-               (serve-helper done-clients
-                             (cdr requests)
-                             (update set-as-open fast-counters index)
-                             (update set-as-open slow-counters index))]
+      ; the body of the main let*
+      (if (null? requests)
+          (cons done-clients (map (λ (C) (cons (counter-index C) (counter-queue C))) active-counters)) ; new base case
+          (match (car requests)
 
-              [(list 'close index)
-               (let* ([target (car (filter (λ (C) (= index (counter-index C))) all-counters))]
-                      [target-queue (counter-queue target)])
-                 (let redistribute ([queue (if (queue-empty? target-queue)
-                                               target-queue
-                                               (dequeue target-queue))]
-                                    [new-fast-counters (update close-counter fast-counters index)]
-                                    [new-slow-counters (update close-counter slow-counters index)])
-                   (if (queue-empty? queue) ; casa nu are clienti, deci nu mai sunt alte calcule de facut
-                       (serve-helper done-clients
-                                     (cdr requests)
-                                     new-fast-counters
-                                     new-slow-counters)
-                       (let* ([first-client (top queue)]
-                              [name (car first-client)]
-                              [n-items (cdr first-client)]
-                              [open-slow-counters (filter (λ (C) (counter-open? C)) new-slow-counters)]
-                              [open-fast-counters (filter (λ (C) (counter-open? C)) new-fast-counters)]
-                              [allowed-counters (if (<= n-items ITEMS)
-                                                    (append open-fast-counters open-slow-counters)
-                                                    open-slow-counters)]
-                              [min-index (car (min-tt allowed-counters))])
-                         ; apelul let-ului cu nume, avand noua stare a caselor si o persoana mai putin de redistribuit
-                         (redistribute (dequeue queue)
-                                       (update (add-to-counter name n-items) new-fast-counters min-index)
-                                       (update (add-to-counter name n-items) new-slow-counters min-index))))))]
-            
-              [(list name n-items) ; neschimbat de la etapa 3
-               (let ([min-index (car (min-tt (allowed-counters n-items)))])
+            [(list 'delay index minutes)
+             (serve-helper done-clients
+                           (cdr requests)
+                           (update (et-tt+ minutes) fast-counters index)
+                           (update (et-tt+ minutes) slow-counters index))]
+
+            [(list 'ensure average)
+             (if (<= average-tt average) ; average is already on target
                  (serve-helper done-clients
                                (cdr requests)
-                               (update (add-to-counter name n-items) fast-counters min-index)
-                               (update (add-to-counter name n-items) slow-counters min-index)))]
+                               fast-counters
+                               slow-counters)
+                 (serve-helper done-clients
+                               requests ; does not move to the next request until enough counters have been added to lower the average
+                               fast-counters
+                               (append slow-counters (list (empty-counter (add1 (length all-counters)))))))]
 
-              [x ; neschimbat de la etapa 3
-               (pass-time x '() fast-counters slow-counters)]))))
+            [(list 'open index)
+             (serve-helper done-clients
+                           (cdr requests)
+                           (update set-as-open fast-counters index)
+                           (update set-as-open slow-counters index))]
 
-    ; apelul helper-ului
-    (serve-helper '() requests fast-counters slow-counters))
+            [(list 'close index)
+             (let* ([target (car (filter (λ (C) (= index (counter-index C))) all-counters))]
+                    [target-queue (counter-queue target)])
+               (let redistribute ([queue (if (queue-empty? target-queue)
+                                             target-queue
+                                             (dequeue target-queue))]
+                                  [new-fast-counters (update close-counter fast-counters index)]
+                                  [new-slow-counters (update close-counter slow-counters index)])
+                 (if (queue-empty? queue) ; the counter has no clients, so there are no other calculations to make
+                     (serve-helper done-clients
+                                   (cdr requests)
+                                   new-fast-counters
+                                   new-slow-counters)
+                     (let* ([first-client (top queue)]
+                            [name (car first-client)]
+                            [n-items (cdr first-client)]
+                            [open-slow-counters (filter (λ (C) (counter-open? C)) new-slow-counters)]
+                            [open-fast-counters (filter (λ (C) (counter-open? C)) new-fast-counters)]
+                            [allowed-counters (if (<= n-items ITEMS)
+                                                  (append open-fast-counters open-slow-counters)
+                                                  open-slow-counters)]
+                            [min-index (car (min-tt allowed-counters))])
+                       ; the call to the named let, with the new state of the counters and one less person to redistribute
+                       (redistribute (dequeue queue)
+                                     (update (add-to-counter name n-items) new-fast-counters min-index)
+                                     (update (add-to-counter name n-items) new-slow-counters min-index))))))]
+
+            [(list name n-items)
+             (let ([min-index (car (min-tt (allowed-counters n-items)))])
+               (serve-helper done-clients
+                             (cdr requests)
+                             (update (add-to-counter name n-items) fast-counters min-index)
+                             (update (add-to-counter name n-items) slow-counters min-index)))]
+
+            [x (pass-time x '() fast-counters slow-counters)]))))
+
+  ; calling the helper
+  (serve-helper '() requests fast-counters slow-counters))

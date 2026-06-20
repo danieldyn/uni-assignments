@@ -8,22 +8,20 @@ import Data.Ord ( comparing )
 
 type Graph a = AlgebraicGraph a
 
--- Graful descris în diagrama din enunțul temei
+-- The graph described in the diagram from the assignment text
 diagram :: AlgebraicGraph Int
 diagram = ((1*2) * (3+4)) * 5
 
 {-
-O partiție este o mulțime de submulțimi ale unei alte mulțimi, disjuncte
-(fără elemente comune) și care împreună conțin toate elementele originale.
+A partition is a set of disjoint subsets of another set
+(without common elements) and which together contain all the original elements.
 
-De exemplu, pentru mulțimea [1,2,3], o posibilă partiție este [[1], [2,3]].
+For example, for the set [1,2,3], a possible partition is [[1], [2,3]].
 -}
 type Partition a = Set (Set a)
 
 {-
-*** TODO ***
-
-Funcția mapSingle din etapa 2.
+The mapSingle function from stage 2.
 -}
 mapSingle :: (a -> a) -> [a] -> [[a]]
 mapSingle f xs = case xs of
@@ -31,9 +29,7 @@ mapSingle f xs = case xs of
   y:ys -> (f y : ys) : map (y :) (mapSingle f ys)
 
 {-
-*** TODO ***
-
-Funcția partitions din etapa 2.
+The partitions function from stage 2.
 -}
 partitions :: [a] -> [[[a]]]
 partitions xs = case xs of
@@ -41,33 +37,9 @@ partitions xs = case xs of
   y:ys -> [ partition | p <- partitions ys, partition <- ([y] : p) : mapSingle (y :) p ]
 
 {-
-*** TODO 10 (10p) ***
-
-
-
-Exemple:Implementați funcția isModule, care verifică dacă o mulțime este un modul,
-i.e. dacă toate nodurile din mulțime au aceeași mulțime de vecini out și 
-aceeași mulțime de vecini in, în exteriorul mulțimii de plecare. Cu alte 
-cuvinte, excludem din verificare vecinii din interiorul mulțimii de plecare.
-
-Hint: Set.map poate reduce dimensiunea unei mulțimi dacă elemente diferite
-inițial sunt asociate cu același element final, întrucât nu pot exista
-duplicate.
-
->>> isModule (Set.fromList [1,2,3,4]) diagram
-True
-
->>> isModule (Set.fromList [5]) diagram
-True
-
->>> isModule (Set.fromList [1,2]) diagram
-True
-
->>> isModule (Set.fromList [3,4]) diagram
-True
-
->>> isModule (Set.fromList [1,3]) diagram
-False
+Checks if a set is a module, i.e. if all nodes in the set have the same set
+of out-neighbors and the same set of in-neighbors, outside the starting set.
+In other words, we exclude from the check the neighbors inside the starting set.
 -}
 isModule :: Ord a
          => Set a
@@ -82,30 +54,8 @@ isModule set graph = Set.size allNeighs <= 1
 
 
 {-
-*** TODO 11 (8p) ***
-
-Implementați funcția isModularPartition, care verifică dacă o partiție
-a mulțimii de noduri constituie o descompunere modulară. Partiția este 
-reprezentată ca o mulțime de mulțimi.
-
-Hint: la fel ca la isModule.
-
-Exemple:
-
->>> isModularPartition (toPartition [[1], [2], [3], [4], [5]]) diagram
-True
-
->>> isModularPartition (toPartition [[1,2,3,4,5]]) diagram
-True
-
->>> isModularPartition (toPartition [[1,2,3,4], [5]]) diagram
-True
-
->>> isModularPartition (toPartition [[1,2], [3,4], [5]]) diagram
-True
-
->>> isModularPartition (toPartition [[1,3], [2,4,5]]) diagram
-False
+Checks if a partition of the set of nodes constitutes a modular decomposition.
+The partition is represented as a set of sets.
 -}
 isModularPartition :: Ord a
                    => Partition a
@@ -114,27 +64,11 @@ isModularPartition :: Ord a
 isModularPartition partition graph = all (\set -> isModule set graph) partition
 
 {-
-*** TODO 12 (12p) ***
-
-Implementați funcția maximalModularPartition, care determină partiția maximală 
-dintr-o mulțime de partiții. Partiția maximală conține cele mai acoperitoare 
-submulțimi ale mulțimii de noduri. Cu alte cuvinte, partiția maximală conține 
-cel mai mic număr de submulțimi mai mare strict decât 1, pentru a exlcude 
-partiția banală care conține doar întreaga mulțime de noduri.
-
-Hint: minimumBy din Data.Foldable. Funcția este folosită pentru a stabili
-un criteriu ad-hoc de ordonare, conform valorii întoarse de o funcție f
-când este aplicată pe elementele structurii, printr-o construcție de forma:
-
-minimumBy (comparing f) structura.
-
-Exemple:
-
-> maximalModularPartition <mulțimea partițiilor> diagram
-fromList [fromList [1,2,3,4],fromList [5]]
-
-> maximalModularPartition <mulțimea partițiilor> $ removeNode 5 diagram
-fromList [fromList [1,2],fromList [3,4]]
+Determines the maximal partition from a set of partitions.
+The maximal partition contains the most covering subsets of the node set. 
+In other words, the maximal partition contains 
+the smallest number of subsets strictly greater than 1, to exclude 
+the trivial partition that contains only the entire set of nodes.
 -}
 maximalModularPartition :: Ord a
                         => Set (Partition a)
@@ -146,16 +80,8 @@ maximalModularPartition partitions graph = minimumBy (comparing Set.size) modula
 
 
 {-
-Obține descompunerea modulară a unui graf. O puteți utiliza pentru
-a experimenta manual cu maximalModularPartition.
-
-Exemple:
-
->>> modularlyDecompose diagram                        
-fromList [fromList [1,2,3,4],fromList [5]]
-
->>> modularlyDecompose $ removeNode 5 diagram
-fromList [fromList [1,2],fromList [3,4]]
+Gets the modular decomposition of a graph. You can use it to
+manually experiment with maximalModularPartition.
 -}
 modularlyDecompose :: Ord a
                    => Graph a

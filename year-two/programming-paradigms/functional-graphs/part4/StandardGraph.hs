@@ -5,19 +5,19 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 {-
-Graf ORIENTAT cu noduri de tipul a, reprezentat prin mulțimile (set) de noduri 
-și de arce.
+DIRECTED graph with nodes of type a, represented by the sets of nodes 
+and edges.
 
-Mulțimile sunt utile pentru că ignoră duplicatele și permit testarea egalității 
-a două grafuri independent de ordinea nodurilor și a arcelor.
+Sets are useful because they ignore duplicates and allow testing the equality 
+of two graphs independently of the order of nodes and edges.
 
-type introduce un sinonim de tip, similar cu typedef din C.
+`type` introduces a type synonym, similar to `typedef` in C.
 -}
 type StandardGraph a = (Set a, Set (a, a))
 
 {-
-Exemple de grafuri, construite pe baza funcției fromComponents de mai jos.
-Observați nodurile și arcele duplicate.
+Examples of graphs, built based on the fromComponents function below.
+Notice the duplicate nodes and edges.
 -}
 graph1 :: StandardGraph Int
 graph1 = fromComponents [1, 2, 3, 3, 4] [(1, 2), (1, 3), (1, 2)]
@@ -46,28 +46,28 @@ shouldBeTrue :: Bool
 shouldBeTrue = graph1 == graph2
 
 {-
-Din etapa 1.
+From stage 1.
 -}
 fromComponents :: Ord a
-               => [a]              -- lista nodurilor
-               -> [(a, a)]         -- lista arcelor
-               -> StandardGraph a  -- graful construit
+               => [a]              -- list of nodes
+               -> [(a, a)]         -- list of edges
+               -> StandardGraph a  -- constructed graph
 fromComponents nodes edges =  (Set.fromList nodes, Set.fromList edges)
 
 {-
-Din etapa 1.
+From stage 1.
 -}
 nodes :: StandardGraph a -> Set a
 nodes = fst
 
 {-
-Din etapa 1.
+From stage 1.
 -}
 edges :: StandardGraph a -> Set (a, a)
 edges = snd
 
 {-
-Din etapa 1.
+From stage 1.
 -}
 outNeighbors :: Ord a => a -> StandardGraph a -> Set a
 outNeighbors from graph = Set.map snd $ Set.filter ((== from) . fst) $ edges graph

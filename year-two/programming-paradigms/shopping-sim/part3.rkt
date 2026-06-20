@@ -6,37 +6,20 @@
 
 (define ITEMS 5)
 
-;; ATENȚIE: Este necesar să implementați întâi
-;;          TDA-ul queue în fișierul queue.rkt.
-;; Reveniți la acest fișier după ce ați implementat tipul 
-;; queue și ați verificat implementarea folosind checker-ul.
-
-
-; Structura counter nu se modifică.
-; Se modifică însă implementarea câmpului queue:
-; - în loc de listă, acesta va fi o structură de tip queue
-; - modificarea nu este vizibilă în definiția structurii,
-;   ci în implementarea operațiilor tipului counter
+; The counter structure does not change.
+; However, the implementation of the queue field changes:
+; - instead of a list, it will be a queue structure
+; - the change is not visible in the structure definition,
+;   but in the implementation of the counter type operations
 (define-struct counter (index tt et queue) #:transparent)
 
 
-; TODO 6 (20p)
-; Actualizați funcțiile de mai jos conform cu 
-; noua reprezentare a cozii de persoane.
-; Elementele cozii rămân perechi (nume . nr_produse).
-; RESTRICȚII (5p per abatere)
-;  - Respectați "bariera de abstractizare", adică 
-;    operați cu coada folosind exclusiv interfața:
-;    - empty-queue
-;    - queue-empty?
-;    - enqueue
-;    - dequeue
-;    - top
-; Obs: Doar câteva funcții necesită actualizări.
-(define (empty-counter index)           ; testată de checker
+; Updates to the functions below according to 
+; the new representation of the people queue.
+(define (empty-counter index)
   (make-counter index 0 0 empty-queue))
 
-(define (update f counters index) ; nu opereaza asupra cozii, ramane ca la etapa 2
+(define (update f counters index)
   (cond
     ((null? counters) '())
     ((= index (counter-index (car counters)))
@@ -44,57 +27,55 @@
     (else
      (cons (car counters) (update f (cdr counters) index)))))
 
-(define ((tt+ minutes) C) ; analog cu update
+(define ((tt+ minutes) C) ; analogous to update
   (struct-copy counter C [tt (+ (counter-tt C) minutes)]))
 
-(define ((et+ minutes) C) ; analog cu tt+
+(define ((et+ minutes) C) ; analogous to tt+
   (struct-copy counter C [et (+ (counter-et C) minutes)]))
 
-(define ((add-to-counter name items) C) ; testată de checker, nu modificați signatura! 
+(define ((add-to-counter name items) C)
   (if (queue-empty? (counter-queue C))
       (struct-copy counter C
-                   [et (+ items (counter-et C))] ; persoana va fi prima la coada
+                   [et (+ items (counter-et C))] ; the person will be first in line
                    [tt (+ items (counter-tt C))]
                    [queue (enqueue (cons name items) (counter-queue C))])
       (struct-copy counter C
                    [tt (+ items (counter-tt C))]
                    [queue (enqueue (cons name items) (counter-queue C))])))
 
-(define ((min-field field) counters) ; tot nu actioneaza asupra cozii, ramane ca la etapa 2
+(define ((min-field field) counters)
 
-  (define (min-field-helper counters index acc) ; helper cu recursivitate pe coada
+  (define (min-field-helper counters index acc) ; helper with tail recursion
     (cond
       ((null? counters) (cons index acc))
       ((<= acc (field (car counters))) (min-field-helper (cdr counters) index acc))
       (else (min-field-helper (cdr counters) (counter-index (car counters)) (field (car counters))))))
 
-  ; apelarea helper-ului
+  ; calling the helper
   (min-field-helper (cdr counters) (counter-index (car counters)) (field (car counters))))
       
 
-(define min-tt (min-field counter-tt)) ; folosind funcția de mai sus
-(define min-et (min-field counter-et)) ; folosind funcția de mai sus
+(define min-tt (min-field counter-tt)) ; using the function above
+(define min-et (min-field counter-et)) ; using the function above
 
-(define (remove-first-from-counter C)   ; testată de checker
-  ((λ (c) ; functie care asteapta sa se faca dequeue ca apoi sa decida ce se intampla cu campul et
+(define (remove-first-from-counter C)
+  ((λ (c) ; function that waits for the dequeue to happen and then decides what happens with the et field
      (if (queue-empty? (counter-queue c))
          (struct-copy counter c [et 0])
          (struct-copy counter c [et (cdr (top (counter-queue c)))])))
-   (struct-copy counter C ; partea care face dequeue si intra ca al doilea termen al aplicatiei
+   (struct-copy counter C ; the part that does the dequeue and enters as the second term of the application
                 [tt (- (counter-tt C) (counter-et C))]
                 [queue (dequeue (counter-queue C))])))
 
 
-; TODO 7 (10p)
-; Implementați o funcție care calculează starea
-; unei case după un număr dat de minute.
-; Funcția presupune, fără să verifice, că în acest timp
-; nu iese nimeni din coadă, deci se modifică
-; doar câmpurile tt și et.
-; Este responsabilitatea utilizatorului să nu apeleze
-; funcția cu minutes > et și coadă nevidă.
-; La casele fără clienți, este responsabilitatea
-; voastră să nu produceți timpi negativi.
+; Function that calculates the state
+; of a counter after a given number of minutes.
+; It function assumes, without checking, that during this time
+; no one leaves the queue, so only the 
+; tt and et fields are modified.
+; It is the user's responsibility not to call
+; the function with minutes > et and a non-empty queue.
+; For counters without customers, it does not produce negative times.
 (define ((pass-time-through-counter minutes) C)
   (if (< minutes (counter-et C))
       (struct-copy counter C
@@ -104,89 +85,80 @@
                    [et 0]
                    [tt (- (counter-tt C) (counter-et C))])))
 
-; TODO 8 (60p)
-; Implementați funcția care simulează fluxul clienților pe la case.
-; ATENȚIE: Față de etapa 2, apar modificări în:
-; - formatul listei de cereri (requests)
-; - formatul rezultatului funcției (explicat mai jos)
-; requests conține 4 tipuri de cereri:
-;   3 moștenite din etapa 2:
-;   - (<name> <n-items>) - așază persoana <name> la coadă la o casă
-;   - (delay <index> <minutes>) - întârzie casa <index> cu <minutes> minute
-;   - (ensure <average>) - cât timp tt-ul mediu al tuturor caselor depășește 
-;                          <average>, adaugă case fără restricții (case slow)
-;   plus noutatea:
-;   - <x> - actualizează starea caselor conform cu trecerea a <x> minute
-;           de la ultima cerere (afectează câmpurile tt, et, queue)
-; Obs: Cererile (remove-first) din etapa 2 sunt înlocuite de un mecanism  
-; mai sofisticat de a scoate clienții din coadă (pe măsură ce trece timpul).
-; Sistemul procesează cererile în ordine, astfel:
-; - nicio modificare pentru cererile moștenite din etapa 2
-; - când timpul prin sistem avansează cu <x> minute, starea caselor
-;   se actualizează pentru a reflecta trecerea timpului;
-;   ieșirile clienților din coadă se rețin în ordine cronologică.
-; Funcția serve întoarce o pereche cu punct între:
-; - lista clienților care au părăsit magazinul, sortată cronologic
-;   - elementele listei au forma (index_casă . nume)
-;   - când mai mulți clienți ies simultan, sortați după indexul casei
-; - lista caselor în starea finală (ca rezultatul din etapele 1 și 2)
-; Sugestii:
-; - gestionați cronologia folosind în mod repetat funcția min-et 
-; - pentru a menține lista clienților plecați, definiți o funcție ajutătoare
-; (cu un parametru în plus față de serve), pe care serve doar o apelează.
-; RESTRICȚII (5p per abatere)
-;  - Folosiți minim un let și un let* (care nu ar putea fi let). (2*5p)
-;  - Respectați "bariera de abstractizare" oricând operați cu tipul queue.
+; Compared to part 2, there are changes to the customer flow function in:
+; - the format of the request list (requests)
+; - the format of the function's result (explained below)
+; requests contains 4 types of requests:
+;   3 inherited from stage 2:
+;   - (<name> <n-items>) - places the person <name> in line at a counter
+;   - (delay <index> <minutes>) - delays counter <index> by <minutes> minutes
+;   - (ensure <average>) - as long as the average tt of all counters exceeds 
+;                          <average>, adds unrestricted counters (slow counters)
+;   plus the new one:
+;   - <x> - updates the state of the counters according to the passage of <x> minutes
+;           since the last request (affects the tt, et, queue fields)
+; Note: The (remove-first) requests from stage 2 are replaced by a more  
+; sophisticated mechanism to remove customers from the queue (as time passes).
+; The system processes the requests in order, as follows:
+; - no modification for the requests inherited from stage 2
+; - when the time through the system advances by <x> minutes, the state of the counters
+;   is updated to reflect the passage of time;
+;   customer exits from the queue are recorded in chronological order.
+; The serve function returns a dotted pair between:
+; - the list of customers who have left the store, sorted chronologically
+;   - the elements of the list have the form (counter_index . name)
+;   - when multiple customers leave simultaneously, sort by counter index
+; - the list of counters in the final state (like the result from stages 1 and 2)
 
-(define (et-tt+ minutes) (compose (tt+ minutes) (et+ minutes))) ; combina efectul functiilor tt+ si et+ pentru utilizare facila
+(define (et-tt+ minutes) (compose (tt+ minutes) (et+ minutes))) ; combines the effect of the tt+ and et+ functions for easy use
 
 (define (serve requests fast-counters slow-counters)
   
-  (define (serve-helper done-clients requests fast-counters slow-counters) ; helper care accepta si lista de clienti care au terminat
+  (define (serve-helper done-clients requests fast-counters slow-counters) ; helper that also accepts the list of clients who have finished
     
-    (define all-counters (append fast-counters slow-counters)) ; intoarce o lista cu toate casele existente la momentul curent 
+    (define all-counters (append fast-counters slow-counters)) ; returns a list with all existing counters at the current moment 
     
-    (define (get-allowed-counters n-items) ; intoarce o lista cu toate casele permise persoanei cu n-items
+    (define (get-allowed-counters n-items) ; returns a list with all allowed counters for the person with n-items
       (if (<= n-items ITEMS)
           all-counters
           slow-counters))
 
-    (define get-average ; intoarce tt-ul mediu al caselor
+    (define get-average ; returns the average tt of the counters
     (/ (foldl
         (λ (C acc) (+ acc (counter-tt C)))
         0
         all-counters)
        (length all-counters)))
 
-    (define (pass-time minutes acc fast-counters slow-counters) ; gestioneaza trecerea timpului si scoaterea clientilor de la case
-      (let* ([all-counters (append fast-counters slow-counters)] ; alte variabile vor depinde de all-counters, trebuie let*
+    (define (pass-time minutes acc fast-counters slow-counters) ; manages the passage of time and the removal of clients from counters
+      (let* ([all-counters (append fast-counters slow-counters)] ; other variables will depend on all-counters, let* is needed
              [active-counters (filter (λ (C) (not (queue-empty? (counter-queue C)))) all-counters)])
 
-        (define finish-sim ; finalizeaza executia pass-time cand garantat nu mai sunt persoane de scos de la case
+        (define finish-sim ; finishes the execution of pass-time when there are guaranteed to be no more people to remove from the counters
           (serve-helper (append done-clients acc)
                         (cdr requests)
                         (map (pass-time-through-counter minutes) fast-counters)
                         (map (pass-time-through-counter minutes) slow-counters)))
 
-        (if (null? active-counters) ; cazul simplu in care simularea se incheie
+        (if (null? active-counters) ; the simple case where the simulation ends
             finish-sim
             (let* ([first-client (min-et active-counters)] 
                    [index (car first-client)]
                    [first-exit (cdr first-client)])
-              (if (> first-exit minutes) ; nimeni nu va iesi de la casa in timpul ramas 
+              (if (> first-exit minutes) ; no one will leave the counter in the remaining time 
                   finish-sim
                   (let* ([min-counter (car (filter (λ (C) (= index (counter-index C))) all-counters))]
                          [name (car (top (counter-queue min-counter)))]
                          [new-fast-counters (map (pass-time-through-counter first-exit) fast-counters)]
                          [new-slow-counters (map (pass-time-through-counter first-exit) slow-counters)])
-                    (pass-time (- minutes first-exit) ; iese primul client si continua simularea
+                    (pass-time (- minutes first-exit) ; the first client leaves and the simulation continues
                                (append acc (list (cons index name)))
                                (update remove-first-from-counter new-fast-counters index)
                                (update remove-first-from-counter new-slow-counters index))))))))
 
-    ; corpul helper-ului
+    ; the body of the helper
     (if (null? requests)
-        (cons done-clients all-counters) ; caz de baza
+        (cons done-clients all-counters) ; base case
         (match (car requests)
 
           [(list 'delay index minutes)
@@ -200,13 +172,13 @@
                                  index))]
 
           [(list 'ensure average)
-           (if (<= get-average average) ; media e deja in target
+           (if (<= get-average average) ; average is already on target
                (serve-helper done-clients
                              (cdr requests)
                              fast-counters
                              slow-counters)
                (serve-helper done-clients
-                             requests ; nu se trece la urmatorul request pana nu s-au adaugat case suficiente pentru a scadea media
+                             requests ; does not move to the next request until enough counters have been added to lower the average
                              fast-counters
                              (append slow-counters (list (empty-counter (add1 (length all-counters)))))))]
 
@@ -221,8 +193,7 @@
                                    slow-counters
                                    min-index)))]
 
-          [x
-           (pass-time x '() fast-counters slow-counters)])))
+          [x (pass-time x '() fast-counters slow-counters)])))
 
-  ; apelul helper-ului
+  ; calling the helper
   (serve-helper '() requests fast-counters slow-counters))

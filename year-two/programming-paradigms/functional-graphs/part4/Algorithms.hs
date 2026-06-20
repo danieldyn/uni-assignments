@@ -8,62 +8,38 @@ import Debug.Trace
 type Graph a = StandardGraph a
 
 {-
-*** TODO 7 (30p) ***
-
-Utilizând equational reasoning, rafinați implementarea dfs din etapa 1
-pentru a obține implementarea eficientă bazată pe o stivă.
-
-Pentru aceasta, generalizați funcția internă folosită în etapa 1 (să o numim 
-search), astfel încât să ia ca parametru nu doar nodul curent din care începe 
-parcurgerea, ci o listă de noduri (să numim noua funcție searchList). Mai 
-precis, impuneți proprietatea:
+Using equational reasoning, we generalise the internal function used in stage 1,
+so that it takes as a parameter not just the current node from which the 
+traversal begins, but a list of nodes (let's call the new function searchList). More 
+specifically, we impose the property:
 
 searchList :: Ord a => [a] -> [a]
 searchList nodes = concatMap search nodes,
 
-de unde rezultă că
+from which it follows that
 
 search node = searchList [node].
 
-De aici, derivați o nouă definiție mai eficientă pentru searchList, abordând 
-cazul de bază și cazul general.
-
-DERIVARE:
+DERIVATION:
   searchList nodes = concatMap search nodes
   search node = searchList [node]
   concatMap f (A ++ B) = concatMap f A ++ concatMap f B
   searchList (A ++ B) = concatMap search A ++ concatMap search B = searchList A ++ searchList B
 
-Pentru []:
+For []:
   searchList [] = concatMap search [] = []
 
-Pentru (current:rest):
+For (current:rest):
   searchList (current:rest) = searchList ([current] ++ rest) = searchList [current] ++ searchList rest
   searchList [current] = current : searchList (neighs current)
-Deci:
+So:
   searchList (current:rest) = (current : searchList (neighs current)) ++ searchList rest
                             = current : (searchList (neighs current) ++ searchList rest)
                             = current : searchList (neighs current ++ rest)
 
-Avand in vedere si lista visited:
-  searchList (current:rest) visited = searchList rest visited, pentru noduri current deja vizitate
-  searchList (current:rest) visited = current : searchList (neighs current ++ rest) visited', pentru noduri nevizitate (visited' = insert current visited)
-
-Exemple
-
->>> dfsStack 1 tree
-[1,2,7,15,8,3,9,10,4,11,12,5,13,14,6]
-
->>> dfsStack 4 tree
-[4,11,12]
-
-In prima etapa:
-dfs :: (Ord a, Show a) => a -> Graph a -> [a]
-dfs node graph = explore node
-  where
-    explore current = current : concatMap explore allNeighs
-      where
-        allNeighs = Set.toList $ outNeighbors current graph
+Considering the visited list as well:
+  searchList (current:rest) visited = searchList rest visited, for already visited current nodes
+  searchList (current:rest) visited = current : searchList (neighs current ++ rest) visited', for unvisited nodes (visited' = insert current visited)
 -}
 dfsStack :: Ord a => a -> Graph a -> [a]
 dfsStack node graph = searchList [node] Set.empty
@@ -79,45 +55,8 @@ dfsStack node graph = searchList [node] Set.empty
 {-
 DEBUG
 
-Funcții pentru debugging, care afișează un mesaj DEBUG de fiecare dată când
-un element este implicat într-o operație de concatenare.
-
-La fel ca (++), appendDebug este asociativă la dreapta în expresii de forma:
-
-xs `appendDebug` ys `appendDebug` zs.
-
-De exemplu, expresiile echivalente asociate la dreapta
-
-[1,2] `appendDebug` ([3] `appendDebug` [4,5,6])
-[1,2] `appendDebug`  [3] `appendDebug` [4,5,6]   (implicit la dreapta)
-
-afișează utilizări unice ale elementelor:
-
-[
-DEBUG: 1
-1,
-DEBUG: 2
-2,
-DEBUG: 3
-3,4,5,6],
-
-în timp ce asocierea la stânga
-
-([1,2] `appendDebug` [3]) `appendDebug` [4,5,6]
-
-necesită utilizări repetate ale elementelor:
-
-[
-DEBUG: 1
-
-DEBUG: 1
-1,
-DEBUG: 2
-
-DEBUG: 2
-2,
-DEBUG: 3
-3,4,5,6]
+Functions for debugging, which print a DEBUG message every time
+an element is involved in a concatenation operation.
 -}
 infixr 5 `appendDebug`
 appendDebug :: Show a => [a] -> [a] -> [a]

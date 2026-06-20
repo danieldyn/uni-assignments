@@ -22,27 +22,7 @@ triangle :: AlgebraicGraph Int
 triangle = Connect (Node 1) (Connect (Node 2) (Node 3))
 
 {-
-*** TODO 1 (15p) ***
-
-Instanțiați clasa Foldable cu constructorul de tip AlgebraicGraph.
-Nodurile trebuie prelucrate în ordinea în care apar în graf.
-
-Odată ce implementați funcția foldr, multe alte funcții predefinite
-care se bazează pe ea devin disponibile.
-
-Exemple:
-
->>> toList triangle
-[1,2,3]
-
->>> length triangle
-3
-
->>> sum triangle
-6
-
->>> maximum triangle
-3
+Instantiation of the Foldable class with the AlgebraicGraph type constructor.
 -}
 instance Foldable AlgebraicGraph where
   foldr :: (a -> b -> b) -> b -> AlgebraicGraph a -> b
@@ -53,54 +33,30 @@ instance Foldable AlgebraicGraph where
     Connect g1 g2 -> foldr f (foldr f acc g2) g1
 
 {-
-*** TODO 2 (5p) ***
-
-Reimplementați funcția nodes folosind foldr.
-
-CONSTRÂNGERI:
-
-* NU puteți obține în prealabil lista nodurilor (de exemplu, folosind toList).
-* Utilizați stilul point-free.
+Reimplementation the nodes function using foldr.
 -}
 nodesWithFoldr :: Ord a => AlgebraicGraph a -> Set a
 nodesWithFoldr = foldr Set.insert Set.empty
 
 {-
-*** TODO 3 (20p) ***
+We will use tupling and equational reasoning to transform it into a compositional variant, 
+called nodesEdges. Specifically, we impose the property
 
-Este funcția edges din etapele 2 și 3 compozițională? Cu alte cuvinte:
+nodesEdges graph = (nodes graph, edges graph)
 
-* Asupra subgrafurilor se aplică numai funcția edges sau și alte funcții?
-* Funcția edges însăși se aplică numai asupra subgrafurilor sau și asupra
-  altor parametri?
-
-Din păcate, veți oberva că nu este compozițională, întrucât asupra subgrafurilor
-se aplică și funcția nodes, nu numai funcția edges. În plus, subgrafurile sunt
-parcurse repetat, atât de edges, cât și de nodes, ceea ce duce la o eficiență
-scăzută.
-
-Utilizați tupling și equational reasoning pentru a o transforma într-o variantă 
-compozițională, numită nodesEdges. Mai precis, impuneți proprietatea
-
-nodesEdges graph = (nodes graph, edges graph),
-
-și derivați mai jos o definiție mai eficientă a funcției nodesEdges,
-care să parcurgă graful o singură dată. Folosiți definițiile funcțiilor
-nodes și edges din etapele 2 și 3.
-
-DERIVARE:
-Pentru Empty:
+DERIVATION:
+For Empty:
   nodes Empty = Set.empty
   edges Empty = Set.empty
   nodesEdges Empty = (nodes Empty, edges Empty) = (Set.empty, Set.empty)
 
-Pentru Node:
+For Node:
   nodes (Node n) = Set.singleton n
   edges (Node _) = Set.empty
   nodesEdges (Node n) = (nodes (Node n), edges (Node n)) 
                       = (Set.singleton n, Set.empty)
 
-Pentru Overlay:
+For Overlay:
   nodes (Overlay g1 g2) = Set.union (nodes g1) (nodes g2)
   edges (Overlay g1 g2) = Set.union (edges g1) (edges g2)
   nodesEdges g1 = (n1, e1)
@@ -109,7 +65,7 @@ Pentru Overlay:
                               = (Set.union (nodes g1) (nodes g2), Set.union (edges g1) (edges g2))
                               = (Set.union n1 n2, Set.union e1 e2)
 
-Pentru Connect:
+For Connect:
   edges (Connect g1 g2) = (edges g1) `Set.union` (edges g2) `Set.union` Set.cartesianProduct (nodes g1) (nodes g2)
   nodesEdges (Connect g1 g2)  = (nodes (Connect g1 g2), edges (Connect g1 g2))
                               = (Set.union (nodes g1) (nodes g2), (edges g1) `Set.union` (edges g2) `Set.union` Set.cartesianProduct (nodes g1) (nodes g2))
@@ -128,28 +84,28 @@ nodesEdges (Connect g1 g2) = (Set.union n1 n2, e1 `Set.union` e2 `Set.union` Set
     (n2, e2) = nodesEdges g2
 
 {-
-Din păcate, deși nodesEdges este compozițională, ea nu poate fi implementată
-cu foldr, întrucât cea din urmă expune o vedere liniară asupra grafului,
-ascunzând structura sa ierarhică, cu subgrafuri combinate prin Overlay
-și Connect.
+Unfortunately, although nodesEdges is compositional, it cannot be implemented
+with foldr, as the latter exposes a linear view of the graph,
+hiding its hierarchical structure, with subgraphs combined through Overlay
+and Connect.
 
-În plus, deși nodesEdges este mai eficientă decât edges, pare că prețul plătit 
-pentru eficiența sporită este pierderea modularității și a reutilizării, 
-întrucât funcția nodes a trebuit reimplementată în definiția lui nodesEdges.
+Furthermore, although nodesEdges is more efficient than edges, it seems the price paid 
+for the increased efficiency is the loss of modularity and reuse, 
+since the nodes function had to be reimplemented in the definition of nodesEdges.
 
-În vederea beneficierii atât de eficiență, cât și de modularitate/reutilizare,
-soluția este definirea unui mecanism mai expresiv de reducere (folding) a 
-grafului, care să expună structura sa ierarhică.
+In order to benefit from both efficiency and modularity/reuse,
+the solution is to define a more expressive mechanism for reducing (folding) the 
+graph, which exposes its hierarchical structure.
 
-Tipul de date AlgebraicGraphFolder reprezintă o colecție de funcții care
-permit reducerea diverselor forme pe care le poate lua graful, presupunând
-că subgrafurile au fost deja reduse recursiv.
+The AlgebraicGraphFolder data type represents a collection of functions that
+allow reducing the various forms the graph can take, assuming
+that the subgraphs have already been recursively reduced.
 
-Semnificația variabilelor de tip:
+The meaning of the type variables:
 
-* a = tipul nodurilor din graf (la fel ca în AlgebraicGraph a)
-* b = tipul rezultatului reducerii subgrafurilor
-* c = tipul rezultatului reducerii grafului curent
+* a = the type of the nodes in the graph (same as in AlgebraicGraph a)
+* b = the type of the result of reducing the subgraphs
+* c = the type of the result of reducing the current graph
 -}
 data AlgebraicGraphFolder a b c = AlgebraicGraphFolder
     { foldEmpty   :: c
@@ -159,9 +115,9 @@ data AlgebraicGraphFolder a b c = AlgebraicGraphFolder
     }
 
 {-
-În măsura în care tipurile reducerilor subgrafurilor și a grafului curent 
-coincid (b), putem reduce întregul graf la același tip b. Observați parametrul
-cu tipul (AlgebraicGraphFolder a b b).
+As long as the types of the subgraph reductions and the current graph
+coincide (b), we can reduce the entire graph to the same type b. Notice the parameter
+with the type (AlgebraicGraphFolder a b b).
 -}
 foldAlgebraicGraph :: AlgebraicGraphFolder a b b -> AlgebraicGraph a -> b
 foldAlgebraicGraph folder = go
@@ -172,18 +128,7 @@ foldAlgebraicGraph folder = go
     go (Connect g1 g2) = foldConnect folder (go g1) (go g2)
 
 {-
-*** TODO 4 (15p) ***
-
-Reimplementați funcția nodes folosind noul mecanism de reducere. Propriu-zis,
-trebuie să implementați doar AlgrabraicGraphFolder-ul.
-
-CONSTRÂNGERI:
-
-* Toate funcțiile din AlgebraicGraphFolder trebuie implementate folosind stilul 
-  point-free.
-
->>> nodes triangle
-fromList [1,2,3]
+Reimplementation using the AlgebraicGraphFolder.
 -}
 nodes :: Ord a => AlgebraicGraph a -> Set a
 nodes = foldAlgebraicGraph nodesFolder
@@ -197,24 +142,8 @@ nodesFolder = AlgebraicGraphFolder
     }
 
 {-
-*** TODO 5 (15p) ***
-
-Implementați funcția isNode, care verifică dacă un nod aparține într-adevăr
-unui graf, utilizând noul mecanism de reducere. Propriu-zis, trebuie să 
-implementați doar AlgrabraicGraphFolder-ul.
-
-CONSTRÂNGERI:
-
-* Toate funcțiile din AlgebraicGraphFolder trebuie implementate folosind stilul 
-  point-free.
-
-Exemple:
-
->>> isNode 1 triangle
-True
-
->>> isNode 4 triangle
-False
+Implementation the isNode function (for checking if a node actually
+belongs to a graph) and the AlgebraicGraphFolder.
 -}
 isNode :: Eq a => a -> AlgebraicGraph a -> Bool
 isNode = foldAlgebraicGraph . isNodeFolder
@@ -228,20 +157,11 @@ isNodeFolder node = AlgebraicGraphFolder
     }
 
 {-
-Operatorul (<+>) combină două foldere INDEPENDENTE, care reduc graful la tipuri 
-diferite (b și c), într-un folder care reduce graful la o pereche de tipuri
+The (<+>) operator combines two INDEPENDENT folders, which reduce the graph to different 
+types (b and c), into a folder that reduces the graph to a pair of types
 (b, c).
 
-infixl (l = left) asigură asociativitatea la stânga a operatorului (vedeți 
-exemplul 2).
-
-Exemple:
-
->>> foldAlgebraicGraph (nodesFolder <+> isNodeFolder 2) triangle
-(fromList [1,2,3],True)
-
->>> foldAlgebraicGraph (nodesFolder <+> isNodeFolder 2 <+> nodesFolder) triangle
-((fromList [1,2,3],True),fromList [1,2,3])
+infixl (l = left) ensures the left associativity of the operator
 -}
 infixl 5 <+>
 (<+>) :: AlgebraicGraphFolder a b b
@@ -257,16 +177,16 @@ folder1 <+> folder2 = AlgebraicGraphFolder
     }
 
 {-
-Operatorul (>.>) combină două foldere SEMIDEPENDENTE, care reduc graful la 
-tipuri diferite (b și c), într-un folder care reduce graful la o pereche de 
-tipuri (b, c).
+The (>.>) operator combines two SEMI-DEPENDENT folders, which reduce the graph to 
+different types (b and c), into a folder that reduces the graph to a pair of 
+types (b, c).
 
-Parantezele unghiulare indică sensul dependenței, de la stânga la dreapta.
-Primul folder este independent, reducând graful la tipul b, în timp ce al 
-doilea folder este dependent de primul, și reduce graful la tipul c, pornind
-de la informația calculată de AMBELE foldere, (b, c).
+The angle brackets indicate the direction of the dependency, from left to right.
+The first folder is independent, reducing the graph to type b, while the 
+second folder is dependent on the first one, and reduces the graph to type c, starting
+from the information calculated by BOTH folders, (b, c).
 
-infixl (l = left) asigură asociativitatea la stânga a operatorului.
+infixl (l = left) ensures the left associativity of the operator.
 -}
 infixl 5 >.>
 (>.>) :: AlgebraicGraphFolder a  b     b
@@ -282,25 +202,13 @@ folder1 >.> folder2 = AlgebraicGraphFolder
     }
 
 {-
-*** TODO 6 (20p) ***
+Implementation of the AlgebraicGraphFolder.
 
-Reimplementați funcția edges folosind noul mecanism de reducere. Propriu-zis,
-trebuie să implementați doar AlgrabraicGraphFolder-ul.
-
-De data aceasta, mulțimea de arce produsă de folder, Set (a, a), depinde
-nu numai de mulțimile de muchii calculate pentru subgrafuri, Set (a, a), ci și 
-de mulțimile de noduri calculate pentru aceleași subgrafuri, Set a. Din acest 
-motiv, funcțiile din folder iau ca parametri perechi între o mulțime de noduri 
-și una de muchii, (Set a, Set (a, a)).
-
-Observați că acum nu a mai trebuit să reimplementăm funcționalitatea lui nodes, 
-ca în funcția nodesEdges de mai sus. Am putut reutiliza funcționalitatea lui 
-nodes, dar nu la nivelul întregii funcții, ci doar la nivelul folderului său.
-
-Exemple:
-
->>> edges triangle
-fromList [(1,2),(1,3),(2,3)]
+This time, the set of edges produced by the folder, Set (a, a), depends
+not only on the edge sets calculated for the subgraphs, Set (a, a), but also 
+on the node sets calculated for the same subgraphs, Set a. For this 
+reason, the functions in the folder take as parameters pairs between a set of nodes 
+and one of edges, (Set a, Set (a, a)).
 -}
 edges :: Ord a => AlgebraicGraph a -> Set (a, a)
 edges = snd . foldAlgebraicGraph (nodesFolder >.> edgesFolder)

@@ -7,94 +7,88 @@
 (provide dequeue)
 (provide top)
 
-(provide (struct-out queue)) ; pentru testare
+(provide (struct-out queue))
 
-;; Lucrul cu o coadă implică multe operații de tip:
-;; - enqueue (adăugare element la sfârșitul cozii)
-;; - dequeue (scoatere element de la începutul cozii)
-;; Când coada este o listă, complexitatea operațiilor este:
-;; - O(n) la enqueue (dată de complexitatea unui append)
-;; - O(1) la dequeue (dată de complexitatea unui cdr)
-;; Dorim cost amortizat constant (O(1))
-;; atât pentru enqueue cât și pentru dequeue.
+;; Working with a queue involves many operations of the type:
+;; - enqueue (adding an element to the end of the queue)
+;; - dequeue (removing an element from the front of the queue)
+;; When the queue is a list, the complexity of operations is:
+;; - O(n) for enqueue (given by the complexity of an append)
+;; - O(1) for dequeue (given by the complexity of a cdr)
+;; We want a constant amortized cost (O(1))
+;; for both enqueue and dequeue.
 ;;
-;; Soluție: reprezentăm coada folosind 2 stive (liste):
-;; - stiva left: din left scoatem la dequeue
-;;   (O(1) dacă left are elemente, altfel O(n))
-;; - stiva right: în right adăugăm la enqueue (O(1))
+;; Solution: we represent the queue using 2 stacks (lists):
+;; - the left stack: we dequeue from left
+;;   (O(1) if left has elements, otherwise O(n))
+;; - the right stack: we enqueue into right (O(1))
 ;; |     |    |     |
 ;; |     |    |__5__|
 ;; |__1__|    |__4__|
 ;; |__2__|    |__3__|
 ;;
-;; Singura operație costisitoare este dequeue
-;; când stiva left este vidă.
-;; Pe exemplu: Presupunem că am scos deja 1 și 2
-;; din coadă și facem un nou dequeue.
-;; În acest caz, complexitatea este O(n):
-;; 1. mutăm (pop + push) toate elementele din right 
-;;    în left (în ordine, extragem 5, 4, 3)
+;; The only costly operation is dequeue
+;; when the left stack is empty.
+;; In the example: Assume we have already removed 1 and 2
+;; from the queue and we perform a new dequeue.
+;; In this case, the complexity is O(n):
+;; 1. we move (pop + push) all elements from right 
+;;    to left (in order, we extract 5, 4, 3)
 ;; |     |    |     |      |     |    |     |      |     |    |     |
 ;; |     |    |     |      |     |    |     |      |__3__|    |     |
 ;; |     |    |__4__|  ->  |__4__|    |     |  ->  |__4__|    |     |
 ;; |__5__|    |__3__|      |__5__|    |__3__|      |__5__|    |_____|
 ;;
-;; 2. pop din stiva left, eliminând valoarea 3
-;; Fiecare element al cozii se mută maxim o dată din
-;; right în left => cost amortizat O(1) per operație.
+;; 2. pop from the left stack, eliminating the value 3
+;; Each element of the queue is moved at most once from
+;; right to left => amortized cost O(1) per operation.
 
 
-; Definim structura "coadă" prin:
-; - left   (o stivă: dequeue = pop pe stiva left)
-; - right  (o stivă: enqueue = push în stiva right)
-; - size-l (numărul de elemente din stiva left)
-; - size-r (numărul de elemente din stiva right)
-; Obs: Listele Racket sunt practic stive (push = cons, pop = car).
+; We define the "queue" structure by:
+; - left   (a stack: dequeue = pop on the left stack)
+; - right  (a stack: enqueue = push into the right stack)
+; - size-l (the number of elements in the left stack)
+; - size-r (the number of elements in the right stack)
 (define-struct queue (left right size-l size-r) #:transparent) 
 
 
-; TODO 1 (5p)
-; Definiți valoarea care reprezintă o coadă goală.
+; The value that represents an empty queue.
 (define empty-queue
   (make-queue '() '() 0 0))
 
 
-; TODO 2 (5p)
-; Implementați o funcție care verifică dacă o coadă este goală.
+; Function that checks if a queue is empty.
 (define (queue-empty? q)
   (and (null? (queue-left q)) (null? (queue-right q))))
 
 
-; TODO 3 (5p)
-; Implementați o funcție care adaugă un element la
-; sfârșitul unei cozi. Întoarceți coada actualizată.
+; Function that adds an element to the end of a queue.
+; Returns the updated queue.
 (define (enqueue x q)
   (struct-copy queue q
                [right (cons x (queue-right q))]
                [size-r (add1 (queue-size-r q))]))
 
 
-; TODO 4 (10p)
-; Implementați o funcție care scoate primul element
-; dintr-o coadă nevidă. Întoarceți coada actualizată.
-; Obs: dequeue pe coada vidă este firesc să dea eroare.
+; Function that removes the first element from a non-empty queue.
+; Returns the updated queue.
+; Note: calling dequeue on an empty queue is expected to throw an error.
 (define (dequeue q)
   (if (null? (queue-left q))
-      (struct-copy queue q ; se muta tot din stiva dreapta in stiva stanga si apoi se scoate primul element
+      (struct-copy queue q ; moves everything from the right stack to the left stack and then removes the first element
                    [left (cdr (reverse (queue-right q)))]
                    [size-l (sub1 (queue-size-r q))]
                    [right '()]
                    [size-r 0])
-      (struct-copy queue q ; doar se scoate primul element din stiva stanga
+      (struct-copy queue q ; only removes the first element from the left stack
                    [left (cdr (queue-left q))]
                    [size-l (sub1 (queue-size-l q))])))
 
 
-; TODO 5 (5p)
-; Implementați o funcție care obține primul element
-; dintr-o coadă nevidă. Întoarceți elementul.
-; Obs: top pe coada vidă este firesc să dea eroare.
-(define (get-last L) ; intoarce ultimul element dintr-o lista (necesar pentru cazul defavorabil al lui top q
+; Function that gets the first element from a non-empty queue.
+; Returns the element.
+; Note: calling top on an empty queue is expected to throw an error.
+(define (get-last L) ; returns the last element of a list (necessary for the worst-case scenario of top q)
   (if (null? (cdr L))
       (car L)
       (get-last (cdr L))))

@@ -4,17 +4,9 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 
 {-
-*** TODO 8 (10p) ***
-
-Aplică o funcție pe fiecare element al unei liste, însă doar pe unul singur
-la un moment dat, păstrându-le pe celalte nemodificate. Prin urmare, pentru
-fiecare element din lista inițială rezultă câte o listă în lista finală,
-aferentă modificării doar a acelui element.
-
-Exemplu:
-
->>> mapSingle (+10) [1,2,3]
-[[11,2,3],[1,12,3],[1,2,13]]
+Applies a function to each element of a list, but only to one at a time,
+keeping the others unchanged. Therefore, for each element in the initial list,
+a list results in the final list, corresponding to the modification of only that element.
 -}
 mapSingle :: (a -> a) -> [a] -> [[a]]
 mapSingle f xs = case xs of
@@ -22,32 +14,15 @@ mapSingle f xs = case xs of
   y:ys -> (f y : ys) : map (y :) (mapSingle f ys)
 
 {-
-*** TODO 9 (10p) ***
+Determines the list of all partitions of a list. Although above the type (Partition a)
+is defined using sets, here we use lists, for simplicity.
 
-Determină lista tuturor partițiilor unei liste. Deși mai sus tipul (Partition a)
-este definit utilizând mulțimi, aici utilizăm liste, pentru simplitate.
+The 3 levels of the list type constructor from the type returned by the function
+have the following meaning:
 
-Cele 3 niveluri ale constructorului de tip listă din tipul întors de funcție
-au următoarea semnificație.
-
-* Nivelul interior reprezintă o submulțime a listei originale
-* Nivelul intermediar reprezintă o partiție, care este o mulțime de submulțimi
-* Nivelul exterior reprezintă mulțimea tuturor partițiilor.
-
-Hints:
-
-* Folosiți list comprehensions pentru a răspunde la întrebarea: dacă am obținut 
-  o partiție a restului listei, cum obținem o partiție a întregii liste,
-  care include capul?
-* Folosiți mapSingle
-
-Exemple:
-
->>> partitions [2,3]
-[[[2],[3]],[[2,3]]]
-
->>> partitions [1,2,3]
-[[[1],[2],[3]],[[1,2],[3]],[[2],[1,3]],[[1],[2,3]],[[1,2,3]]]
+* The inner level represents a subset of the original list
+* The intermediate level represents a partition, which is a set of subsets
+* The outer level represents the set of all partitions.
 -}
 partitions :: [a] -> [[[a]]]
 partitions xs = case xs of
