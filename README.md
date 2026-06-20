@@ -11,6 +11,7 @@ There are cases of complex team projects which I maintained in a separate shared
 | Numerical Methods (NM) | Matlab | None |
 | Applied Informatics 4 (AI4) | Python | [Repo Link](https://github.com/danieldyn/livin-on-a-platform) |
 | Object-Oriented Programming (OOP) | Java | None |
+| Operating Systems (OS) | C | None |
 | Algorithm Analysis (AA) | LaTeX, C++, Python | [Repo Link](https://github.com/danieldyn/tsp-solution-study) |
 | Communication Protocols (CP) | C, C++ | None |
 | Programming Paradigms (PP) | Racket, Haskell | None |
